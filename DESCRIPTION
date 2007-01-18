@@ -1,0 +1,9 @@
+Package: RJDBC
+Version: 0.1-1
+Title: Provides access to databases through the JDBC interface
+Author: Simon Urbanek <Simon.Urbanek@r-project.org>
+Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
+Depends: methods, DBI, rJava (>= 0.4-12), R (>= 2.4.0)
+Description: Provides access to databases through the JDBC interface
+License: GPL version 2
+URL: http://www.rforge.net/RJDBC/

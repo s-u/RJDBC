@@ -1,0 +1,31 @@
+#!/bin/sh
+
+PNAME=RJDBC
+SWD=`pwd`
+echo "Removing previous dist ..."
+rm -rf /tmp/${PNAME}
+echo "Copying package base ..."
+cp -r ../${PNAME} /tmp
+
+rm -f /tmp/${PNAME}/mkdist
+
+cd /tmp/${PNAME}
+
+echo "Removing CVS and backup stuff ..."
+find . -name CVS -o -name .svn | xargs rm -rf
+find . -name \*~ | xargs rm -f
+
+echo "Updating version ..."
+VER=`./version`
+echo "$PNAME version ${VER}"
+#cat DESCRIPTION| sed "s/Version:.*/Version: ${VER}/" > d
+#mv d DESCRIPTION
+
+echo "Creating package ..."
+cd ..
+tar fcz ${PNAME}_${VER}.tar.gz ${PNAME}
+cd ${SWD}
+cp /tmp/${PNAME}_${VER}.tar.gz ..
+rm -rf /tmp/${PNAME}
+echo "Done."
+ls -l ../${PNAME}_${VER}.tar.gz
