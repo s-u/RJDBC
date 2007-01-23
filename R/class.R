@@ -33,7 +33,7 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
 setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
 
 setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
-          .jcall(conn@jc, "V", "close"))
+          {.jcall(conn@jc, "V", "close"); TRUE})
 
 .fillStatementParameters <- function(s, l) {
   for (i in 1:length(l)) {
