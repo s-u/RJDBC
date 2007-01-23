@@ -7,7 +7,7 @@ rm -rf /tmp/${PNAME}
 echo "Copying package base ..."
 cp -r ../${PNAME} /tmp
 
-rm -f /tmp/${PNAME}/mkdist
+rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version"
 
 cd /tmp/${PNAME}
 
