@@ -5,7 +5,7 @@
 \alias{dbGetInfo,JDBCDriver-method}
 \alias{dbUnloadDriver,JDBCDriver-method}
 \alias{dbConnect,JDBCDriver-method}
-\title{Methods for the class JDBCDriver in Package `RJDBC' ~~}
+\title{Methods for the class JDBCDriver in Package `RJDBC'}
 \description{
   Methods for the class `JDBCDriver' in Package `RJDBC'.
 

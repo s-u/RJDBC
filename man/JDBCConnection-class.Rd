@@ -21,8 +21,8 @@
        }
        
 \section{Extends}{
-  Class \code{"\linkS4class{DBIConnection}"}, directly.
-  Class \code{"\linkS4class{DBIObject}"}, by class "DBIConnection", distance 2.
+  Class \code{"\link[DBI]{DBIConnection-class}"}, directly.
+  Class \code{"\link[DBI]{DBIObject-class}"}, by class "DBIConnection", distance 2.
 }
 \section{Methods}{
   No methods defined with class "JDBCConnection" in the signature.

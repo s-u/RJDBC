@@ -15,8 +15,8 @@ Objects can be created by calls to \code{\link{JDBC}} or \code{\link[DBI]{dbDriv
   }
 }
 \section{Extends}{
-Class \code{"\linkS4class{DBIDriver}"}, directly.
-Class \code{"\linkS4class{DBIObject}"}, by class "DBIDriver", distance 2.
+Class \code{"\link[DBI]{DBIDriver-class}"}, directly.
+Class \code{"\link[DBI]{DBIObject-class}"}, by class "DBIDriver", distance 2.
 }
 \section{Methods}{
 No methods defined with class "JDBCDriver" in the signature.

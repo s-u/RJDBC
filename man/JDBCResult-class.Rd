@@ -14,8 +14,8 @@
   }
 }
 \section{Extends}{
-Class \code{"\linkS4class{DBIResult}"}, directly.
-Class \code{"\linkS4class{DBIObject}"}, by class "DBIResult", distance 2.
+Class \code{"\link[DBI]{DBIResult-class}"}, directly.
+Class \code{"\link[DBI]{DBIObject-class}"}, by class "DBIResult", distance 2.
 }
 \section{Methods}{
 No methods defined with class "JDBCResult" in the signature.
