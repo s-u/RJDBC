@@ -7,8 +7,6 @@ rm -rf /tmp/${PNAME}
 echo "Copying package base ..."
 cp -r ../${PNAME} /tmp
 
-rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version"
-
 cd /tmp/${PNAME}
 
 echo "Removing CVS and backup stuff ..."
@@ -20,6 +18,8 @@ VER=`./version`
 echo "$PNAME version ${VER}"
 #cat DESCRIPTION| sed "s/Version:.*/Version: ${VER}/" > d
 #mv d DESCRIPTION
+
+rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version"
 
 echo "Creating package ..."
 cd ..
