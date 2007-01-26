@@ -194,7 +194,6 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     names(l)[i] <- .jcall(res@md, "S", "getColumnName", i)
   }
 
-  .jcall(res@jr, "V", "beforeFirst")
   j <- 0
   while (.jcall(res@jr, "Z", "next")) {
     j <- j + 1
