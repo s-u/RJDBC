@@ -200,8 +200,10 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     for (i in 1:cols) {
       if (is.numeric(l[[i]]))
         l[[i]][j] <- .jcall(res@jr, "D", "getDouble", i)
-      else
-        l[[i]][j] <- .jcall(res@jr, "S", "getString", i)
+      else {
+        a <- .jcall(res@jr, "S", "getString", i)
+        l[[i]][j] <- if (is.null(a)) NA else a
+      }
     }
     if (n > 0 && j >= n) break
   }
