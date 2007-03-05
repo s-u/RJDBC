@@ -1,3 +1,8 @@
+0.1-4	2007-03-05
+    *	added SQL error information to most JDBC errors
+
+    *	use .jfindClass to load drivers
+
 0.1-3	2007-02-21
     *	remove beforeFirst() as some DBMS don't like it. This also
 	allows a sequential use of fetch() with a limit to load data
