@@ -1,3 +1,7 @@
+0.1-5	(under development)
+    *	instantiate driver's class and use a call to 'connect' as a
+	fall-back if the DriverManager fails to find a proper driver.
+
 0.1-4	2007-03-05
     *	added SQL error information to most JDBC errors
 

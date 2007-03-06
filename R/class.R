@@ -1,12 +1,15 @@
 ##=== JDBCDriver
 
-setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character"))
+setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
 
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   .jinit(classPath)
   if (nchar(driverClass) && is.jnull(.jfindClass(as.character(driverClass)[1])))
     stop("Cannot find JDBC driver class ",driverClass)
-  new("JDBCDriver", identifier.quote=as.character(identifier.quote))
+  jdrv <- .jnew(driverClass, check=FALSE)
+  .jcheck(TRUE)
+  if (is.jnull(jdrv)) jdrv <- .jnull()
+  new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
 }
 
 .verify.JDBC.result <- function (result, ...) {
@@ -32,6 +35,15 @@ setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) NULL)
 
 setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ...) {
   jc <- .jcall("java/sql/DriverManager","Ljava/sql/Connection;","getConnection", as.character(url)[1], as.character(user)[1], as.character(password)[1], check=FALSE)
+  if (is.jnull(jc) || !is.jnull(drv@jdrv)) {
+    # ok one reason for this to fail is its interaction with rJava's
+    # class loader. In that case we try to load the driver directly.
+    oex <- .jgetEx(TRUE)
+    p <- .jnew("java/util/Properties")
+    if (length(user)==1 && nchar(user)) .jcall(p,"Ljava/lang/Object;","setProperty","user",user)
+    if (length(password)==1 && nchar(password)) .jcall(p,"Ljava/lang/Object;","setProperty","password",password)
+    jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p)
+  }
   .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
   new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
           valueClass="JDBCConnection")
