@@ -12,6 +12,10 @@ Objects can be created by calls to \code{\link{JDBC}} or \code{\link[DBI]{dbDriv
     \item{\code{identifier.quote}:}{Quote character to use for
       identifiers in automatically generated SQL statements or \code{NA}
       if quoted identifiers are not supported by the back-end.}
+    \item{\code{jdrv}:}{Java object reference to an instance of the
+      driver if the driver can be instantiated by a default
+      constructor. This object is only used as a fall-back when the
+      driver manager fails to find a driver.}
   }
 }
 \section{Extends}{
