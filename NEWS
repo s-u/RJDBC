@@ -2,6 +2,11 @@
     *	instantiate driver's class and use a call to 'connect' as a
 	fall-back if the DriverManager fails to find a proper driver.
 
+    *	fix SQL syntax in dbWriteTable (superfluous semicolon)
+
+    *	fix a typo in prepared statement code
+	(thanks to Carl Grant for the last two bugfixes)
+
 0.1-4	2007-03-05
     *	added SQL error information to most JDBC errors
 

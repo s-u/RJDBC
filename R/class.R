@@ -58,7 +58,7 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 .fillStatementParameters <- function(s, l) {
   for (i in 1:length(l)) {
     if (is.integer(l[[i]]))
-      .jcall(s, "V", "setInteger", i, l[[i]][1])
+      .jcall(s, "V", "setInt", i, l[[i]][1])
     else {
       if (is.numeric(l[[i]]))
         .jcall(s, "V", "setDouble", i, as.double(l[[i]])[1])
@@ -181,14 +181,14 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   }
   fdef <- paste(.sql.qescape(names(value), TRUE, conn@identifier.quote),fts,collapse=',')
   qname <- .sql.qescape(name, TRUE, conn@identifier.quote)
-  ct <- paste("CREATE TABLE ",qname," (",fdef,");",sep= '')
+  ct <- paste("CREATE TABLE ",qname," (",fdef,")",sep= '')
   if (ac) {
     .jcall(conn@jc, "V", "setAutoCommit", FALSE)
     on.exit(.jcall(conn@jc, "V", "setAutoCommit", ac))
   }
   dbSendUpdate(conn, ct)
   if (length(value[[1]])) {
-    inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),");",sep='')
+    inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
     for (j in 1:length(value[[1]]))
       dbSendUpdate(conn, inss, list=as.list(value[j,]))
   }
