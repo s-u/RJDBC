@@ -1,4 +1,4 @@
-0.1-5	(under development)
+0.1-5	2007-10-01
     *	instantiate driver's class and use a call to 'connect' as a
 	fall-back if the DriverManager fails to find a proper driver.
 
