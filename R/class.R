@@ -235,7 +235,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
 })
 
 setMethod("dbClearResult", "JDBCResult",
-          def = function(res, ...) { jcall(res@jr, "V", "close"); TRUE},
+          def = function(res, ...) { .jcall(res@jr, "V", "close"); TRUE },
           valueClass = "logical")
 
 setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...) list(), valueClass="list")
