@@ -11,6 +11,7 @@
   \describe{
     \item{\code{jr}:}{Java reference to the JDBC result set}
     \item{\code{md}:}{Java reference to the JDBC result set meta data}
+    \item{\code{stat}:}{Java reference to the JDBC statement which generated this result}
   }
 }
 \section{Extends}{
