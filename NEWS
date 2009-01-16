@@ -2,10 +2,10 @@
     *	fix a typo in dbClearResult
 
     *	map NAs in query parameters into NULLs
-	(thanks to Alex Klenk)
+	(thanks to Axel Klenk)
 
     *	explicitly close statements right away (Oracle seems to need this)
-	(thanks to Alex Klenk)
+	(thanks to Axel Klenk)
 
     *	add "stat" slot (Statement object) to JDBCResult class to make sure
 	the statement lives long enough to not close the result set

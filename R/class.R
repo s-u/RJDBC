@@ -73,7 +73,6 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", as.character(statement)[1], check=FALSE)
   .verify.JDBC.result(s, "Unable to execute JDBC statement ",statement)
-  on.exit(.jcall(s, "V", "close")) # in theory this is not necesary since 's' will go away and be collected, but appearently it may be too late for Oracle (ORA-01000)
   if (length(list(...))) .fillStatementParameters(s, list(...))
   if (!is.null(list)) .fillStatementParameters(s, list)
   r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
