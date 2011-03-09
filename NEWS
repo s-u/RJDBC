@@ -10,6 +10,8 @@
     *	add "stat" slot (Statement object) to JDBCResult class to make sure
 	the statement lives long enough to not close the result set
 
+    *	convert NULLs into NAs in numeric columns
+
 0.1-5	2007-10-01
     *	instantiate driver's class and use a call to 'connect' as a
 	fall-back if the DriverManager fails to find a proper driver.

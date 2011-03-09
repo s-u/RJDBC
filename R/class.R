@@ -225,9 +225,10 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   while (.jcall(res@jr, "Z", "next")) {
     j <- j + 1
     for (i in 1:cols) {
-      if (is.numeric(l[[i]]))
-        l[[i]][j] <- .jcall(res@jr, "D", "getDouble", i)
-      else {
+      if (is.numeric(l[[i]])) {
+        a <- l[[i]][j] <- .jcall(res@jr, "D", "getDouble", i)
+        if (a == 0 && .jcall(res@jr, "Z", "wasNull")) l[[i]][j] <- NA
+      } else {
         a <- .jcall(res@jr, "S", "getString", i)
         l[[i]][j] <- if (is.null(a)) NA else a
       }
