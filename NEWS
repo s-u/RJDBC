@@ -1,3 +1,14 @@
+0.2-0	(under development)
+    *	use Java code to fetch results -- it should result in much higher
+	throughput in pulling result sets from the database. It is
+	also more efficient to use fetch() with n specified
+	(especially if you know it in advance) than relying on
+	n = -1. The latter will try first run with n = 32k and then
+	continue with n = 512k chunks and paste the results which is
+	inherently slow (still much faster than the 0.1-x way which
+	was fetching one record at a time).
+
+
 0.1-6	2011-03-09
     *	fix a typo in dbClearResult
 

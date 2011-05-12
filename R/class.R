@@ -4,6 +4,7 @@ setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character",
 
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   .jinit(classPath)
+  .jaddClassPath(system.file("java", "RJDBC.jar", package="RJDBC"))
   if (nchar(driverClass) && is.jnull(.jfindClass(as.character(driverClass)[1])))
     stop("Cannot find JDBC driver class ",driverClass)
   jdrv <- .jnew(driverClass, check=FALSE)
@@ -79,7 +80,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
   .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data for ",statement, " in dbSendQuery")
-  new("JDBCResult", jr=r, md=md, stat=s)
+  new("JDBCResult", jr=r, md=md, stat=s, pull=.jnull())
 })
 
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
@@ -206,39 +207,43 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 ## Since the life of a result set depends on the life of the statement, we have to explicitly
 ## save the later as well (and close both at the end)
 
-setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef"))
+setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", pull="jobjRef"))
 
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
-  if (cols < 1) return(NULL)
+  if (cols < 1L) return(NULL)
   l <- list()
+  cts <- rep(0L, cols)
   for (i in 1:cols) {
     ct <- .jcall(res@md, "I", "getColumnType", i)
-    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8))
+    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
       l[[i]] <- numeric()
-    else
+      cts[i] <- 1L
+    } else
       l[[i]] <- character()
     names(l)[i] <- .jcall(res@md, "S", "getColumnName", i)
   }
-
-  j <- 0
-  while (.jcall(res@jr, "Z", "next")) {
-    j <- j + 1
-    for (i in 1:cols) {
-      if (is.numeric(l[[i]])) {
-        a <- l[[i]][j] <- .jcall(res@jr, "D", "getDouble", i)
-        if (a == 0 && .jcall(res@jr, "Z", "wasNull")) l[[i]][j] <- NA
-      } else {
-        a <- .jcall(res@jr, "S", "getString", i)
-        l[[i]][j] <- if (is.null(a)) NA else a
-      }
-    }
-    if (n > 0 && j >= n) break
+  rp <- res@pull
+  if (is.jnull(rp)) {
+    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), as.integer(cts))
+    .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull hepler class")
   }
-  if (j)
-    as.data.frame(l, row.names=1:j)
-  else
-    as.data.frame(l)
+  if (n < 0L) { ## infinite pull
+    stride <- 32768L  ## start fairly small to support tiny queries and increase later
+    while ((nrec <- .jcall(rp, "I", "fetch", stride)) > 0L) {
+      for (i in seq.int(cols))
+        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+      if (nrec < stride) break
+      stride <- 524288L # 512k
+    }
+  } else {
+    nrec <- .jcall(rp, "I", "fetch", as.integer(n))
+    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+  }
+  # as.data.frame is expensive - create it on the fly from the list
+  attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
+  class(l) <- "data.frame"
+  l
 })
 
 setMethod("dbClearResult", "JDBCResult",
