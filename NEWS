@@ -1,4 +1,4 @@
-0.2-0	(under development)
+0.2-0	2011-05-16
     *	use Java code to fetch results -- it should result in much higher
 	throughput in pulling result sets from the database. It is
 	also more efficient to use fetch() with n specified

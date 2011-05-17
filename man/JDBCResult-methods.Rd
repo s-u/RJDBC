@@ -10,8 +10,10 @@
   Methods for the class `JDBCResult' in Package `RJDBC'.
 
   \code{fetch} retrieves the content of the result set in the form of a
-  data frame. NOTE: the current implementation is done purely in R and
-  is not very efficient.
+  data frame. If \code{n} is -1 then the current implementation fetches
+  32k rows first and then (if not sufficient) continues with chunks of
+  512k rows, appending them. If the size of the result set is known in
+  advance, it is most efficient to set \code{n} to that size.
 
   \code{dbClearResult} releases the result set.
 
@@ -20,8 +22,8 @@
 
   \code{dbGetInfo} returns an empty list.
 
-  \code{dbListResults} returns an empty list and wanrs that JDBC doesn't
-  track results
+  \code{dbListResults} returns an empty list and warns that JDBC doesn't
+  track results.
   }
 \section{Methods}{
   \describe{
@@ -32,4 +34,3 @@
     \item{dbListResults}{\code{signature(res = "JDBCResult", ...)}}
 }}
 \keyword{methods}
-
