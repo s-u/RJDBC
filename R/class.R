@@ -225,7 +225,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   }
   rp <- res@pull
   if (is.jnull(rp)) {
-    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), as.integer(cts))
+    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(cts)))
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull hepler class")
   }
   if (n < 0L) { ## infinite pull
