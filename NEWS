@@ -1,5 +1,9 @@
 0.2-1	(under development)
-    *	 add support for dbWriteTable(..., append=TRUE)
+    *	add support for dbWriteTable(..., append=TRUE)
+
+    *	pass any additional arguments to dbConnect() as properties to
+	the connection
+
 
 0.2-0	2011-05-16
     *	use Java code to fetch results -- it should result in much higher

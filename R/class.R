@@ -43,6 +43,8 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
     p <- .jnew("java/util/Properties")
     if (length(user)==1 && nchar(user)) .jcall(p,"Ljava/lang/Object;","setProperty","user",user)
     if (length(password)==1 && nchar(password)) .jcall(p,"Ljava/lang/Object;","setProperty","password",password)
+    l <- list(...)
+    if (length(names(l))) for (n in names(l)) .jcall(p, "Ljava/lang/Object;", "setProperty", n, as.character(l[[n]]))
     jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p)
   }
   .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
