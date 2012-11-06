@@ -4,6 +4,11 @@
     *	pass any additional arguments to dbConnect() as properties to
 	the connection
 
+    *	use prepared statements only if parameters are passed,
+	otherwise use simple statements (this allows to work around
+	bugs in	drivers that do not support prepared statements
+	properly)
+
 
 0.2-0	2011-05-16
     *	use Java code to fetch results -- it should result in much higher
