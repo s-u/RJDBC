@@ -74,7 +74,7 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 }
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
-  if (length(...) || length(list)) { ## use prepared statements if there are additional arguments
+  if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC statement ",statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
@@ -95,7 +95,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
 
 setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
-  if (length(...) || length(list)) { ## use prepared statements if there are additional arguments
+  if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC statement ",statement)
     on.exit(.jcall(s, "V", "close")) # in theory this is not necesary since 's' will go away and be collected, but appearently it may be too late for Oracle (ORA-01000)
