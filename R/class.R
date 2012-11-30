@@ -114,6 +114,8 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
 
 setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ...) {
   r <- dbSendQuery(conn, statement, ...)
+  ## Teradata needs this - closing the statement also closes the result set according to Java docs
+  on.exit(.jcall(r@stat, "V", "close"))
   fetch(r, -1)
 })
 

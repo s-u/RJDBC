@@ -9,6 +9,9 @@
 	bugs in	drivers that do not support prepared statements
 	properly)
 
+    *	dbGetQuery() explicitly closes the statement before it returns
+	to work arround issues in the Teradata driver.
+
 
 0.2-0	2011-05-16
     *	use Java code to fetch results -- it should result in much higher
