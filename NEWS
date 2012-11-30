@@ -1,4 +1,4 @@
-0.2-1	(under development)
+0.2-1	2012-11-30
     *	add support for dbWriteTable(..., append=TRUE)
 
     *	pass any additional arguments to dbConnect() as properties to
