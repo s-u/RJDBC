@@ -1,3 +1,8 @@
+0.2-2	(under development)
+    *	add dbGetTables() and dbGetFields() which are similar to
+	dbListTable() and dbListFields() but return a full data frame
+	as obtained from the corresponding JDBC calls.
+
 0.2-1	2012-11-30
     *	add support for dbWriteTable(..., append=TRUE)
 

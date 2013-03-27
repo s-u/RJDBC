@@ -130,34 +130,66 @@ setMethod("dbListResults", "JDBCConnection",
           def = function(conn, ...) { warning("JDBC maintains no list of active results"); NULL }
           )
 
+.fetch.result <- function(r) {
+  md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
+  .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data")
+  res <- new("JDBCResult", jr=r, md=md, stat=.jnull(), pull=.jnull())
+  fetch(res, -1)
+}
+
 setMethod("dbListTables", "JDBCConnection", def=function(conn, pattern="%", ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
   r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", .jnull("java/lang/String"),
               .jnull("java/lang/String"), pattern, .jnull("[Ljava/lang/String;"), check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC tables list")
+  on.exit(.jcall(r, "V", "close"))
   ts <- character()
   while (.jcall(r, "Z", "next"))
     ts <- c(ts, .jcall(r, "S", "getString", "TABLE_NAME"))
-  .jcall(r, "V", "close")
   ts
+})
+
+if (is.null(getGeneric("dbGetTables"))) setGeneric("dbGetTables", function(conn, ...) standardGeneric("dbGetTables"))
+
+setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", ...) {
+  md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
+  .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
+  r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", .jnull("java/lang/String"),
+              .jnull("java/lang/String"), pattern, .jnull("[Ljava/lang/String;"), check=FALSE)
+  .verify.JDBC.result(r, "Unable to retrieve JDBC tables list")
+  on.exit(.jcall(r, "V", "close"))
+  .fetch.result(r)
 })
 
 setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, ...) (length(dbListTables(conn, name))>0))
 
 setMethod("dbRemoveTable", "JDBCConnection", def=function(conn, name, ...) dbSendUpdate(conn, paste("DROP TABLE", name))==0)
 
-setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%", ...) {
+setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%", full=FALSE, ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
   r <- .jcall(md, "Ljava/sql/ResultSet;", "getColumns", .jnull("java/lang/String"),
               .jnull("java/lang/String"), name, pattern, check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ",name)
+  on.exit(.jcall(r, "V", "close"))
   ts <- character()
   while (.jcall(r, "Z", "next"))
     ts <- c(ts, .jcall(r, "S", "getString", "COLUMN_NAME"))
   .jcall(r, "V", "close")
   ts
+})
+
+if (is.null(getGeneric("dbGetFields"))) setGeneric("dbGetFields", function(conn, ...) standardGeneric("dbGetFields"))
+
+setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%", ...) {
+  md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
+  .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
+  r <- .jcall(md, "Ljava/sql/ResultSet;", "getColumns", .jnull("java/lang/String"),
+              .jnull("java/lang/String"), name, pattern, check=FALSE)
+  .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ",name)
+  on.exit(.jcall(r, "V", "close"))
+  .fetch.result(r)
 })
 
 setMethod("dbReadTable", "JDBCConnection", def=function(conn, name, ...)

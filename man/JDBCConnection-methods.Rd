@@ -17,6 +17,10 @@
 \alias{dbSendQuery,JDBCConnection,character-method}
 \alias{dbSendUpdate}
 \alias{dbSendUpdate,JDBCConnection,character-method}
+\alias{dbGetTables}
+\alias{dbGetTables,JDBCConnection-method}
+\alias{dbGetFields}
+\alias{dbGetFields,JDBCConnection-method}
 \alias{dbWriteTable,JDBCConnection-method}
 \title{Methods for the class `JDBCConnect' in Package `RJDBC'}
 \description{
@@ -26,9 +30,16 @@
   database. The difference between the two is only that
   \code{dbSendUpdate} is used with DBML queries and thus doesn't return
   any result set.
+
+  \code{dbGetTables} and \code{dbGetFields} are similar to
+  \code{dbListTables} and \code{dbListFields} but the result is a data
+  frame with all available details (whereas the latter return only a
+  character vector of the names).
 }
 \usage{
 dbSendUpdate (conn, statement, ...)
+dbGetTables (conn, ...)
+dbGetFields (conn, ...)
 }
 \arguments{
   \item{conn}{connection object}
@@ -42,11 +53,14 @@ dbSendUpdate (conn, statement, ...)
     \item{dbDataType}{\code{signature(dbObj = "JDBCConnection", obj =
 	"ANY", ...)}}
     \item{dbDisconnect}{\code{signature(conn = "JDBCConnection", ...)}}
-    \item{dbExistsTable}{\code{signature(conn = "JDBCConnection", ...)}}
+    \item{dbExistsTable}{\code{signature(conn = "JDBCConnection", name =
+  "character", ...)}}
     \item{dbGetException}{\code{signature(conn = "JDBCConnection", ...)}}
+    \item{dbGetFields}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbGetInfo}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbGetQuery}{\code{signature(conn = "JDBCConnection", statement
 	= "character", ...)}}
+    \item{dbGetTables}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbListFields}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbListResults}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbListTables}{\code{signature(conn = "JDBCConnection", ...)}}
