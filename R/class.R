@@ -74,16 +74,25 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 }
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
-  if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
-    s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", as.character(statement)[1], check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC statement ",statement)
+  statement <- as.character(statement)[1L]
+  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
+    s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
+    .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
+    if (length(list(...))) .fillStatementParameters(s, list(...))
+    if (!is.null(list)) .fillStatementParameters(s, list)
+    r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+  } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
+    s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
+    .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
   } else { ## otherwise use a simple statement some DBs fail with the above)
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
-    .verify.JDBC.result(s, "Unable to create JDBC statement ",statement)
+    .verify.JDBC.result(s, "Unable to create simple JDBC statement ",statement)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
   } 
@@ -95,10 +104,18 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
 
 setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
-  if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
-    s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", as.character(statement)[1], check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC statement ",statement)
-    on.exit(.jcall(s, "V", "close")) # in theory this is not necesary since 's' will go away and be collected, but appearently it may be too late for Oracle (ORA-01000)
+  statement <- as.character(statement)[1L]
+  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
+    s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
+    .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
+    if (length(list(...))) .fillStatementParameters(s, list(...))
+    if (!is.null(list)) .fillStatementParameters(s, list)
+    r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+  } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
+    s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
+    .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     .jcall(s, "I", "executeUpdate", check=FALSE)

@@ -52,6 +52,9 @@
   \code{identifier.quote="`"}. If set to \code{NA}, the ability to quote
   identifiers is disabled, which poses restrictions on the names that
   can be used for tables and fields. Other functionality is not affected.  
+
+  As of RDJBC 0.2-2 JDBC-specific stored procedure calls starting with
+  \code{\{call} and \code{\{?= call} are supported in the statements.
 }
 \seealso{
   \code{\link[DBI]{dbConnect}}

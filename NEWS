@@ -3,6 +3,11 @@
 	dbListTable() and dbListFields() but return a full data frame
 	as obtained from the corresponding JDBC calls.
 
+    *	add support for stored procedure call JDBC syntax.
+	Currently only IN parameters are supported since
+	DBI doesn't provide a way to retrieve OUT parameters.
+
+
 0.2-1	2012-11-30
     *	add support for dbWriteTable(..., append=TRUE)
 
