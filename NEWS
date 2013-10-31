@@ -7,6 +7,8 @@
 	Currently only IN parameters are supported since
 	DBI doesn't provide a way to retrieve OUT parameters.
 
+    *	JDBC now uses path.expand() on the classPath components
+
 
 0.2-1	2012-11-30
     *	add support for dbWriteTable(..., append=TRUE)
