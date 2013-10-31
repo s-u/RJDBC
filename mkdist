@@ -27,7 +27,7 @@ rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version"
 
 echo "Creating package ..."
 cd ..
-tar fcz ${PNAME}_${VER}.tar.gz ${PNAME}
+R CMD build "${PNAME}"
 cd ${SWD}
 cp /tmp/${PNAME}_${VER}.tar.gz ..
 rm -rf /tmp/${PNAME}
