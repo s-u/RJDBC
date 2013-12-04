@@ -38,7 +38,7 @@ setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) NULL)
 
 setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ...) {
   jc <- .jcall("java/sql/DriverManager","Ljava/sql/Connection;","getConnection", as.character(url)[1], as.character(user)[1], as.character(password)[1], check=FALSE)
-  if (is.jnull(jc) || !is.jnull(drv@jdrv)) {
+  if (is.jnull(jc) && !is.jnull(drv@jdrv)) {
     # ok one reason for this to fail is its interaction with rJava's
     # class loader. In that case we try to load the driver directly.
     oex <- .jgetEx(TRUE)
