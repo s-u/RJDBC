@@ -339,3 +339,7 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
 },
           valueClass = "data.frame")
 
+setMethod("dbHasCompleted", "JDBCResult", def = function(res, ...) {
+  TRUE
+},
+          valueClass = "logical")
