@@ -120,6 +120,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
     .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
+    on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
     .jcall(s, "I", "executeUpdate", check=FALSE)
   } else {
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
