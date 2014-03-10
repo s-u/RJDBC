@@ -65,6 +65,7 @@ public class JDBCResultPull {
      */
     public int fetch(int atMost) throws java.sql.SQLException {
 	setCapacity(atMost);
+    rs.setFetchSize(atMost);
 	count = 0;
 	while (rs.next()) {
 	    for (int i = 0; i < cols; i++)
