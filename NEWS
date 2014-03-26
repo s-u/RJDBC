@@ -1,3 +1,8 @@
+0.2-4	(under development)
+    *	set fetch size to match teh capacity for better performance
+	with some drivers. (thanks Jesse Rohland)
+
+
 0.2-3	2013-12-12
     *	fix duplicate connection object (issue #1)
 
