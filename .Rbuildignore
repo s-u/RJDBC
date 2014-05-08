@@ -1,0 +1,5 @@
+\.git
+\.gitignore
+src
+test.sh
+.*\.tar.gz
