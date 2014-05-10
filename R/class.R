@@ -2,31 +2,10 @@
 
 setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
 
-conversion_map <- list(
-  'character'=as.character,
-  'double'=as.double,
-  'integer'=as.integer,
-  'logical'=as.logical,
-  'date'=as.POSIXlt
-)
-
-.get.type <- function(x) {
-  names(type_map)[Position(function(t) {x %in% t}, type_map, nomatch=1)]
-}
-
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   ## expand all paths in the classPath
   classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
   .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
-  # build type-map
-  types <- .jnew('java.sql.Types')
-  type_map <<- list(
-    'character'=c(types$CHAR, types$VARCHAR, types$LONGVARCHAR, types$NVARCHAR, types$LONGNVARCHAR),
-    'double'=c(types$DECIMAL, types$DOUBLE, types$FLOAT, types$NUMERIC, types$REAL),
-    'integer'=c(types$BIGINT, types$INTEGER, types$SMALLINT, types$TINYINT),
-    'logical'=c(types$BOOLEAN),
-    'date'=c(types$DATE, types$TIMESTAMP)
-  )
   .jaddClassPath(system.file("java", "RJDBC.jar", package="RJDBC"))
   if (nchar(driverClass) && is.jnull(.jfindClass(as.character(driverClass)[1])))
     stop("Cannot find JDBC driver class ",driverClass)
@@ -307,11 +286,11 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   cols <- .jcall(res@md, "I", "getColumnCount")
   if (cols < 1L) return(NULL)
   l <- list()
-  conversion <- list()
+  col_types <- list()
   cts <- rep(0L, cols)
   for (i in 1:cols) {
     ct <- .get.type(.jcall(res@md, "I", "getColumnType", i))
-    conversion[[i]] <- conversion_map[[ct]]
+    col_types[[i]] <- ct
     if (ct %in% c('integer', 'double', 'logical')) {
       l[[i]] <- numeric()
       cts[i] <- 1L
@@ -336,8 +315,22 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     nrec <- .jcall(rp, "I", "fetch", as.integer(n))
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
-  # apply conversions to columns
-  l <- mapply(function(x, f) { f(x) }, l, conversion, SIMPLIFY=FALSE)
+  # apply conversions to columns that require it
+  if (getOption('RJDBC.convert_types', FALSE)) {
+    conversion_map = getOption('RJDBC.conversion_map')
+    if (is.list(conversion_map)) {
+      # default to character if missing
+      col_types <- ifelse(is.na(col_types), 'character', col_types)
+      for (i in grep('character', col_types, invert=TRUE)) {
+        conversion = conversion_map[[col_types[[i]]]]
+        if (!is.null(conversion)) {
+          l[[i]] <- conversion(l[[i]])
+        } else {
+          warning(paste("No conversion specified for '", col_types[[i]], "' data-type."))
+        }
+      }
+    }
+  }
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"
