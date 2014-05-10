@@ -25,7 +25,7 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   }
 }
 
-setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of acitve connections."); list() })
+setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of active connections."); list() })
 
 setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
   list(name="JDBC", driver.version="0.1-1",
@@ -317,18 +317,20 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   }
   # apply conversions to columns that require it
   if (getOption('RJDBC.convert_types', FALSE)) {
-    conversion_map = getOption('RJDBC.conversion_map')
+    conversion_map <- getOption('RJDBC.conversion_map')
     if (is.list(conversion_map)) {
-      # default to character if missing
-      col_types <- ifelse(is.na(col_types), 'character', col_types)
-      for (i in grep('character', col_types, invert=TRUE)) {
-        conversion = conversion_map[[col_types[[i]]]]
-        if (!is.null(conversion)) {
+      for (i in grep('character|numeric', col_types, invert=TRUE)) {
+        conversion <- conversion_map[[col_types[[i]]]]
+        if (is.function(conversion)) {
           l[[i]] <- conversion(l[[i]])
+        } else if (is.null(conversion)) {
+          warning(paste0("No conversion specified for '", col_types[[i]], "' data-type."))
         } else {
-          warning(paste("No conversion specified for '", col_types[[i]], "' data-type."))
+          warning(paste0("Invalid conversion specified for '", col_types[[i]], "' data-type."))
         }
       }
+    } else {
+      warning("Invalid conversion map: list of functions required.")
     }
   }
   # as.data.frame is expensive - create it on the fly from the list
