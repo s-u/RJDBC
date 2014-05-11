@@ -7,3 +7,7 @@ Depends: methods, DBI, rJava (>= 0.4-15), R (>= 2.4.0)
 Description: RJDBC is an implementation of R's DBI interface using JDBC as a back-end. This allows R to connect to any DBMS that has a JDBC driver.
 License: GPL-2
 URL: http://www.rforge.net/RJDBC/
+Collate:
+  types.R
+  options.R
+  class.R

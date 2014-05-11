@@ -316,21 +316,15 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # apply conversions to columns that require it
-  if (getOption('RJDBC.convert_types', FALSE)) {
-    conversion_map <- getOption('RJDBC.conversion_map')
-    if (is.list(conversion_map)) {
-      for (i in grep('character|numeric', col_types, invert=TRUE)) {
-        conversion <- conversion_map[[col_types[[i]]]]
-        if (is.function(conversion)) {
-          l[[i]] <- conversion(l[[i]])
-        } else if (is.null(conversion)) {
-          warning(paste0("No conversion specified for '", col_types[[i]], "' data-type."))
-        } else {
-          warning(paste0("Invalid conversion specified for '", col_types[[i]], "' data-type."))
-        }
+  if (RJDBC.options('convert.types')) {
+    conversion_map <- RJDBC.options('conversion.map')
+    for (i in grep('character|numeric', col_types, invert=TRUE)) {
+      conversion <- conversion_map[[col_types[[i]]]]
+      if (is.null(conversion)) {
+        warning(paste0("No conversion specified for '", col_types[[i]], "' data-type."))
+      } else {
+        l[[i]] <- conversion(l[[i]])
       }
-    } else {
-      warning("Invalid conversion map: list of functions required.")
     }
   }
   # as.data.frame is expensive - create it on the fly from the list
