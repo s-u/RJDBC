@@ -111,6 +111,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
+    on.exit(.jcall(s, "V", "close")) # same as ORA issue below and #4
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
@@ -118,9 +119,9 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
+    on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
-    on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
     .jcall(s, "I", "executeUpdate", check=FALSE)
   } else {
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
