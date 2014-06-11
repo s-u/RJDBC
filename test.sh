@@ -26,7 +26,10 @@ data(iris)
 dbWriteTable(c, "iris", iris, overwrite=TRUE)
 dbReadTable(c, "iris")
 ## simple send query
-fetch(dbSendQuery(c, "SELECT count(*) FROM iris"), 1)
+fetch(r <- dbSendQuery(c, "SELECT count(*) FROM iris"), 1)
+## query info - some people need this
+dbGetInfo(r)
+dbHasCompleted(r)
 ## prepared send query
 fetch(dbSendQuery(c, "SELECT Species, count(Species) FROM iris WHERE `Sepal.Width` > ? GROUP BY Species", 3), 1e3)
 ## simple update
