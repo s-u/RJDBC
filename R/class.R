@@ -325,7 +325,10 @@ setMethod("dbClearResult", "JDBCResult",
           def = function(res, ...) { .jcall(res@jr, "V", "close"); .jcall(res@stat, "V", "close"); TRUE },
           valueClass = "logical")
 
-setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...) list(), valueClass="list")
+setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...) list(has.completed=TRUE), valueClass="list")
+
+## this is not needed for recent DBI, but older implementations didn't provide default methods
+setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) TRUE, valueClass="logical")
 
 setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
