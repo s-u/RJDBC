@@ -25,7 +25,7 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   }
 }
 
-setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of acitve connections."); list() })
+setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of active connections."); list() })
 
 setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
   list(name="JDBC", driver.version="0.1-1",
@@ -77,7 +77,7 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
@@ -97,7 +97,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
     .verify.JDBC.result(s, "Unable to create simple JDBC statement ",statement)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
-  } 
+  }
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data for ",statement, " in dbSendQuery")
   new("JDBCResult", jr=r, md=md, stat=s, pull=.jnull())
@@ -107,7 +107,7 @@ if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(con
 
 setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
@@ -271,7 +271,7 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
     for (j in 1:length(value[[1]]))
       dbSendUpdate(conn, inss, list=as.list(value[j,]))
   }
-  if (ac) dbCommit(conn)            
+  if (ac) dbCommit(conn)
 })
 
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
@@ -288,10 +288,12 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   cols <- .jcall(res@md, "I", "getColumnCount")
   if (cols < 1L) return(NULL)
   l <- list()
+  col_types <- list()
   cts <- rep(0L, cols)
   for (i in 1:cols) {
-    ct <- .jcall(res@md, "I", "getColumnType", i)
-    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
+    ct <- .get.type(.jcall(res@md, "I", "getColumnType", i))
+    col_types[[i]] <- ct
+    if (ct %in% c('integer', 'double', 'logical')) {
       l[[i]] <- numeric()
       cts[i] <- 1L
     } else
@@ -315,6 +317,18 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     nrec <- .jcall(rp, "I", "fetch", as.integer(n))
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
+  # apply conversions to columns that require it
+  if (RJDBC.options('convert.types')) {
+    conversion_map <- RJDBC.options('conversion.map')
+    for (i in grep('character|numeric', col_types, invert=TRUE)) {
+      conversion <- conversion_map[[col_types[[i]]]]
+      if (is.null(conversion)) {
+        warning(paste0("No conversion specified for '", col_types[[i]], "' data-type."))
+      } else {
+        l[[i]] <- conversion(l[[i]])
+      }
+    }
+  }
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"
@@ -337,10 +351,9 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   for (i in 1:cols) {
     l$field.name[i] <- .jcall(res@md, "S", "getColumnName", i)
     l$field.type[i] <- .jcall(res@md, "S", "getColumnTypeName", i)
-    ct <- .jcall(res@md, "I", "getColumnType", i)
-    l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
+    l$data.type[i] <- .get.type(.jcall(res@md, "I", "getColumnType", i))
   }
-  as.data.frame(l, row.names=1:cols)    
+  as.data.frame(l, row.names=1:cols)
 },
           valueClass = "data.frame")
 
