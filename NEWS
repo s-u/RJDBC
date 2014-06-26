@@ -1,6 +1,11 @@
-0.2-4	(under development)
+0.2-4	2014-06-26
     *	set fetch size to match teh capacity for better performance
 	with some drivers. (thanks Jesse Rohland)
+
+    *	close DB objects explicitly (issue #4) to avoid Oracle DB
+	running out of resources
+
+    *	add support for dbHasCompleted() even in older DBI versions
 
 
 0.2-3	2013-12-12
