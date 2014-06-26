@@ -23,7 +23,7 @@ echo "$PNAME version ${VER}"
 #cat DESCRIPTION| sed "s/Version:.*/Version: ${VER}/" > d
 #mv d DESCRIPTION
 
-rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version"
+rm -f "/tmp/${PNAME}/mkdist" "/tmp/${PNAME}/version" "/tmp/${PNAME}/test.sh"
 
 echo "Creating package ..."
 cd ..
