@@ -1,5 +1,9 @@
+0.2-5	(under development)
+    *	fix bug in dbUnloadDriver() returning NULL instead of FALSE
+
+
 0.2-4	2014-06-26
-    *	set fetch size to match teh capacity for better performance
+    *	set fetch size to match the capacity for better performance
 	with some drivers. (thanks Jesse Rohland)
 
     *	close DB objects explicitly (issue #4) to avoid Oracle DB

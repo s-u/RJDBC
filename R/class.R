@@ -34,7 +34,7 @@ setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
        max.connections=NA)
           )
 
-setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) NULL)
+setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) FALSE)
 
 setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ...) {
   jc <- .jcall("java/sql/DriverManager","Ljava/sql/Connection;","getConnection", as.character(url)[1], as.character(user)[1], as.character(password)[1], check=FALSE)
