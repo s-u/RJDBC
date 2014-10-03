@@ -25,7 +25,7 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   }
 }
 
-setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of acitve connections."); list() })
+setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of active connections."); list() })
 
 setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
   list(name="JDBC", driver.version="0.1-1",
