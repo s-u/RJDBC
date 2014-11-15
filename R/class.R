@@ -1,4 +1,4 @@
-##=== JDBCDriver
+#=== JDBCDriver
 
 setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
 
@@ -32,7 +32,7 @@ setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
        DBI.version="0.1-1",
        client.version=NA,
        max.connections=NA)
-          )
+)
 
 setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) FALSE)
 
@@ -51,14 +51,14 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
   }
   .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
   new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
-          valueClass="JDBCConnection")
+  valueClass="JDBCConnection")
 
 ### JDBCConnection
 
 setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
 
 setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
-          {.jcall(conn@jc, "V", "close"); TRUE})
+{.jcall(conn@jc, "V", "close"); TRUE})
 
 .fillStatementParameters <- function(s, l) {
   for (i in 1:length(l)) {
@@ -149,7 +149,7 @@ setMethod("dbGetInfo", "JDBCConnection",
 
 setMethod("dbListResults", "JDBCConnection",
           def = function(conn, ...) { warning("JDBC maintains no list of active results"); NULL }
-          )
+)
 
 .fetch.result <- function(r) {
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
@@ -214,7 +214,7 @@ setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%",
 })
 
 setMethod("dbReadTable", "JDBCConnection", def=function(conn, name, ...)
-          dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(name,TRUE,conn@identifier.quote))))
+  dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(name,TRUE,conn@identifier.quote))))
 
 setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
           def = function(dbObj, obj, ...) {
@@ -287,38 +287,54 @@ setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", s
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
   if (cols < 1L) return(NULL)
-  l <- list()
-  cts <- rep(0L, cols)
-  for (i in 1:cols) {
-    ct <- .jcall(res@md, "I", "getColumnType", i)
-    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
-      l[[i]] <- numeric()
-      cts[i] <- 1L
-    } else
-      l[[i]] <- character()
-    names(l)[i] <- .jcall(res@md, "S", "getColumnName", i)
-  }
   rp <- res@pull
   if (is.jnull(rp)) {
-    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(cts)))
+    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"))
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull hepler class")
   }
+  
+  l <- list()
+  for (i in seq.int(cols)) {
+    l[[i]] <- switch(.jcall(rp, "I", "getRType", i - 1L),
+                     character(),
+                     numeric(),
+                     integer(),
+                     logical())
+    names(l)[i] <- .jcall(res@md, "S", "getColumnName", i)
+  }
+  
   if (n < 0L) { ## infinite pull
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride)) > 0L) {
-      for (i in seq.int(cols))
-        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+      for (i in seq.int(cols)) {
+        l[[i]] <- c(l[[i]], switch(.jcall(rp, "I", "getRType", i - 1L),
+                                   .jcall(rp, "[S", "getStringCol", i),
+                                   .jcall(rp, "[D", "getNumericCol", i),
+                                   .jcall(rp, "[I", "getIntegerCol", i),
+                                   .jcall(rp, "[Z", "getBooleanCol", i)))
+      }
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n))
-    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    for (i in seq.int(cols)) {
+      l[[i]] <- switch(.jcall(rp, "I", "getRType", i - 1L),
+                       .jcall(rp, "[S", "getStringCol", i),
+                       .jcall(rp, "[D", "getNumericCol", i),
+                       .jcall(rp, "[I", "getIntegerCol", i),
+                       .jcall(rp, "[Z", "getBooleanCol", i))
+    }
   }
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"
-  l
+  flat = .jcall(rp, "[I", "getNaNs")
+  indices = matrix(flat, ncol = 2, byrow = TRUE)
+  if (nrow(indices) > 0) for (i in seq.int(cols)) {
+    l[indices[2]==i, i] <- NaN
+  }
+  return(l)
 })
 
 setMethod("dbClearResult", "JDBCResult",
@@ -338,9 +354,9 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
     l$field.name[i] <- .jcall(res@md, "S", "getColumnName", i)
     l$field.type[i] <- .jcall(res@md, "S", "getColumnTypeName", i)
     ct <- .jcall(res@md, "I", "getColumnType", i)
-    l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
+    l$data.type[i] <- if (ct == 93) "date" else if (ct == 4) "integer" else if (ct == 16) "logical" else if(ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
   }
   as.data.frame(l, row.names=1:cols)    
 },
-          valueClass = "data.frame")
+valueClass = "data.frame")
 
