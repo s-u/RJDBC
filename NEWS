@@ -1,4 +1,4 @@
-0.2-5	(under development)
+0.2-5	2014-12-18
     *	fix bug in dbUnloadDriver() returning NULL instead of FALSE
 
     *	added block argument to fetch() currently defaulting to 2048
