@@ -15,6 +15,15 @@
   512k rows, appending them. If the size of the result set is known in
   advance, it is most efficient to set \code{n} to that size.
 
+  Additional argument \code{block} can be used to inform the driver
+  that pre-fetching of a certain block of records is desirable
+  (see \code{setFetchSize()} in JDBC) leading to possibly faster pulls
+  of large queries. The default is to pre-fetch 2048 records. Note
+  that some databases (like Oracle) don't support a fetch size of more
+  than 32767. If set to \code{NA} or anything less than 1 then the
+  fetch size is not changed. This is only a hint, drivers are free to
+  ignore it.
+
   \code{dbClearResult} releases the result set.
 
   \code{dbColumnInfo} returns basic information about the columns

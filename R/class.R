@@ -284,8 +284,10 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 
 setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", pull="jobjRef"))
 
-setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, ...) {
+setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
+  block <- as.integer(block)
+  if (length(block) != 1L) stop("invalid block size")
   if (cols < 1L) return(NULL)
   l <- list()
   cts <- rep(0L, cols)
@@ -305,14 +307,14 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   }
   if (n < 0L) { ## infinite pull
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
-    while ((nrec <- .jcall(rp, "I", "fetch", stride)) > 0L) {
+    while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
         l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
-    nrec <- .jcall(rp, "I", "fetch", as.integer(n))
+    nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # as.data.frame is expensive - create it on the fly from the list
