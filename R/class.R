@@ -48,6 +48,7 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
     l <- list(...)
     if (length(names(l))) for (n in names(l)) .jcall(p, "Ljava/lang/Object;", "setProperty", n, as.character(l[[n]]))
     jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p)
+    
   }
   .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
   new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
@@ -284,7 +285,7 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 
 setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", pull="jobjRef"))
 
-setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, ...) {
+setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, fetch.size=0, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
   if (cols < 1L) return(NULL)
   l <- list()
@@ -305,14 +306,14 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   }
   if (n < 0L) { ## infinite pull
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
-    while ((nrec <- .jcall(rp, "I", "fetch", stride)) > 0L) {
+    while ((nrec <- .jcall(rp, "I", "fetch", stride, as.integer(fetch.size))) > 0L) {
       for (i in seq.int(cols))
         l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
-    nrec <- .jcall(rp, "I", "fetch", as.integer(n))
+    nrec <- .jcall(rp, "I", "fetch", as.integer(n), as.integer(fetch.size))
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # as.data.frame is expensive - create it on the fly from the list
