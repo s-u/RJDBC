@@ -55,7 +55,18 @@ public class JDBCResultPull {
 	    for (int i = 0; i < cols; i++)
 		data[i] = (cTypes[i] == CT_NUMERIC) ? (Object)new double[atMost] : (Object)new String[atMost];
 	    capacity = atMost;
-	}
+        }
+    }
+
+    /** set the fetch size to an integer passed form R. If the fetch size is 
+     * left out, or passed as 0, it will not implicitely set the fetchSize.
+     * This will allow users to tune the database queries, or ignore the 
+     * fetchSize if it is not supported by the driver.
+     */
+    public void setFetchSize(int fetchSize) throws java.sql.SQLException {
+        if (fetchSize > 0) {
+            rs.setFetchSize(fetchSize);
+        }
     }
 
     /** fetch records from the result set into column arrays. It
@@ -63,9 +74,9 @@ public class JDBCResultPull {
      * @param atMost the maximum number of rows to be retrieved
      * @return number of rows retrieved
      */
-    public int fetch(int atMost) throws java.sql.SQLException {
+    public int fetch(int atMost, int fsize) throws java.sql.SQLException {
 	setCapacity(atMost);
-    rs.setFetchSize(10);
+    setFetchSize(fsize);
 	count = 0;
 	while (rs.next()) {
 	    for (int i = 0; i < cols; i++)
