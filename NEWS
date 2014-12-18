@@ -7,6 +7,9 @@
 	big for some databases therefore it is now configurable.
 	(issue #10)
 
+    *	recover if setFetchSize() fails since some drivers don't take
+	it as a hint and fail regardless (issue #11)
+
 
 0.2-4	2014-06-26
     *	set fetch size to match the capacity for better performance

@@ -68,8 +68,11 @@ public class JDBCResultPull {
      */
     public int fetch(int atMost, int fetchSize) throws java.sql.SQLException {
 	setCapacity(atMost);
-	if (fetchSize > 0)
-	    rs.setFetchSize(fetchSize);
+	if (fetchSize > 0) {
+	    try { // run in a try since it's a hint, but some bad drivers fail on it anyway (see #11)
+		rs.setFetchSize(fetchSize);
+	    } catch (java.sql.SQLException e) { } // we can't use SQLFeatureNotSupportedException because that's 1.6+ only
+	}
 	count = 0;
 	while (rs.next()) {
 	    for (int i = 0; i < cols; i++)
