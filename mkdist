@@ -14,7 +14,7 @@ find . -name CVS -o -name .svn | xargs rm -rf
 find . -name \*~ | xargs rm -f
 
 mkdir -p inst/java
-javac -d inst/java -source 1.4 -target 1.4 java-src/*.java || exit 1
+javac -d inst/java -source 1.4 -target 1.4 java/*.java || exit 1
 (cd inst/java; jar fvc RJDBC.jar info; rm -rf info)
 
 echo "Updating version ..."
