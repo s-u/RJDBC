@@ -1,6 +1,11 @@
 ##=== JDBCDriver
 
-setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
+setClass(Class = "JDBCDriver",
+  contains = "DBIDriver",
+  slots = list(
+    identifier.quote="character",
+    jdrv="jobjRef")
+)
 
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   ## expand all paths in the classPath
@@ -55,7 +60,12 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
 
 ### JDBCConnection
 
-setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
+setClass(Class = "JDBCConnection",
+  contains = "DBIConnection",
+  slots = list(
+    jc="jobjRef",
+    identifier.quote="character")
+)
 
 setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
           {.jcall(conn@jc, "V", "close"); TRUE})
@@ -77,7 +87,7 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
@@ -97,7 +107,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
     .verify.JDBC.result(s, "Unable to create simple JDBC statement ",statement)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
-  } 
+  }
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data for ",statement, " in dbSendQuery")
   new("JDBCResult", jr=r, md=md, stat=s, pull=.jnull())
@@ -107,7 +117,7 @@ if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(con
 
 setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
@@ -271,7 +281,7 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
     for (j in 1:length(value[[1]]))
       dbSendUpdate(conn, inss, list=as.list(value[j,]))
   }
-  if (ac) dbCommit(conn)            
+  if (ac) dbCommit(conn)
 })
 
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
@@ -282,7 +292,14 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 ## Since the life of a result set depends on the life of the statement, we have to explicitly
 ## save the later as well (and close both at the end)
 
-setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", pull="jobjRef"))
+setClass(Class = "JDBCResult",
+  contains = "DBIResult",
+  slots = list(
+    jr="jobjRef",
+    md="jobjRef",
+    stat="jobjRef",
+    pull="jobjRef")
+)
 
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
@@ -340,7 +357,7 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
     ct <- .jcall(res@md, "I", "getColumnType", i)
     l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
   }
-  as.data.frame(l, row.names=1:cols)    
+  as.data.frame(l, row.names=1:cols)
 },
           valueClass = "data.frame")
 
