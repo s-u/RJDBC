@@ -298,7 +298,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
       cts[i] <- 1L
     } else
       l[[i]] <- character()
-    names(l)[i] <- .jcall(res@md, "S", "getColumnName", i)
+    names(l)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
   }
   rp <- res@pull
   if (is.jnull(rp)) {
@@ -337,7 +337,7 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   l <- list(field.name=character(), field.type=character(), data.type=character())
   if (cols < 1) return(as.data.frame(l))
   for (i in 1:cols) {
-    l$field.name[i] <- .jcall(res@md, "S", "getColumnName", i)
+    l$field.name[i] <- .jcall(res@md, "S", "getColumnLabel", i)
     l$field.type[i] <- .jcall(res@md, "S", "getColumnTypeName", i)
     ct <- .jcall(res@md, "I", "getColumnType", i)
     l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
