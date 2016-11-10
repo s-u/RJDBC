@@ -5,5 +5,5 @@ Author: Simon Urbanek <Simon.Urbanek@r-project.org>
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
 Depends: methods, DBI, rJava (>= 0.4-15), R (>= 2.4.0)
 Description: RJDBC is an implementation of R's DBI interface using JDBC as a back-end. This allows R to connect to any DBMS that has a JDBC driver.
-License: GPL-2
+License: MIT + file LICENSE
 URL: http://www.rforge.net/RJDBC/
