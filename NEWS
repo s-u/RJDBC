@@ -1,6 +1,9 @@
 0.2-6	(under development)
     *	move java-src to java
 
+    *	add schema= argument to dbGetTables() and dbListTables()
+
+
 0.2-5	2014-12-18
     *	fix bug in dbUnloadDriver() returning NULL instead of FALSE
 
