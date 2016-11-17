@@ -39,6 +39,9 @@ dbSendUpdate(c, "CREATE TABLE foo (alpha VARCHAR(32), beta INT)")
 dbSendUpdate(c, "INSERT INTO foo VALUES (?, ?)", "foo", 123)
 dbSendUpdate(c, "INSERT INTO foo VALUES (?, ?)", "bar", 456)
 fetch(dbSendQuery(c, "SELECT * FROM foo"), -1)
+## list
+dbGetTables(c)
+dbListTables(c)
 ## calls
 ## NOTE: there is a bug in MySQL so DROP PROCEDURE IF EXISTS does NOT work!!
 ## hence we have to cross our fingers and hope it is not already defined
