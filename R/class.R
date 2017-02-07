@@ -257,7 +257,7 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=TRUE, append=FALSE, ...) {
+setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=TRUE, append=FALSE, ..., max.batch=10000L) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
   append <- if (overwrite) FALSE else isTRUE(as.logical(append))
@@ -286,10 +286,11 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   }
   if (length(value[[1]])) {
     inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
-    for (j in 1:length(value[[1]]))
-      dbSendUpdate(conn, inss, list=as.list(value[j,]))
+    ## ake sure everything is a character other than real/int
+    list <- lapply(value, function(o) if (!is.numeric(o)) as.character(o) else o)
+    dbSendUpdate(conn, inss, list=list)
   }
-  if (ac) dbCommit(conn)            
+  if (ac) dbCommit(conn)
 })
 
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
