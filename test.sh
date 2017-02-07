@@ -38,6 +38,8 @@ dbSendUpdate(c, "CREATE TABLE foo (alpha VARCHAR(32), beta INT)")
 ## prepared update
 dbSendUpdate(c, "INSERT INTO foo VALUES (?, ?)", "foo", 123)
 dbSendUpdate(c, "INSERT INTO foo VALUES (?, ?)", "bar", 456)
+## vectorized update
+dbSendUpdate(c, "INSERT INTO foo VALUES (?, ?)", c("x","y","z"), 1:3)
 fetch(dbSendQuery(c, "SELECT * FROM foo"), -1)
 ## list
 dbGetTables(c)
