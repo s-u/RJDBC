@@ -123,7 +123,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
     l <- c(list(...), list)
     if (length(l)) {
       if (length(tl <- table(sapply(l, length))) > 1) stop("all parameters must have the same length")
-      if (tl > 1) { ## batch insert
+      if (as.integer(names(tl)) > 1) { ## batch insert
         bx <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCBatchExecute", s, length(l))
         .verify.JDBC.result(bx, "Unable to create batch-insert object")
         for (o in l) {
@@ -131,7 +131,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
           else if (is.numeric(o)) .jcall(bx, "V", "addDoubles", o)
           else .jcall(bx, "V", "addStrings", as.character(o))
         }
-        .jcall(bx, "V", "execute", as.integer(maxBatch))
+        .jcall(bx, "V", "execute", as.integer(max.batch))
         .verify.JDBC.result(bx, "Unable to execute batch-insert query ", statement)
       } else {
         .fillStatementParameters(s, l)

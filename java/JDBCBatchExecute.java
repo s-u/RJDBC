@@ -19,7 +19,6 @@ public class JDBCBatchExecute {
 	s = stat;
 	ptr = 0;
 	tl = 0;
-	types = parTypes;
     }
 
     public void addDoubles(double[] d) {
@@ -40,25 +39,25 @@ public class JDBCBatchExecute {
 	cache[ptr++] = s;
     }
 
-    public void execute(int maxBatch) {
+    public void execute(int maxBatch) throws java.sql.SQLException {
 	if (ptr > 0) {
 	    int bptr = 0;
-	    long l = 0;
+	    int l = 0;
 	    while (l < tl) {
 		int i = 0;
 		while (i < ptr) {
 		    if (types[i] == T_DOUBLE) {
 			double val = ((double[])(cache[i]))[l]; // FIXME: NA?
-			c.setDouble(i, val);
+			s.setDouble(i + 1, val);
 		    } else if (types[i] == T_INT) {
 			int val = ((int[])(cache[i]))[l]; // FIXME: NA?
-			c.setInteger(i, val);
-		    } else if(types[i] = T_STRING) {
+			s.setInt(i + 1, val);
+		    } else if(types[i] == T_STRING) {
 			String val = ((String[])(cache[i]))[l];
 			if (val == null)
-			    c.setNull(i);
+			    s.setNull(i + 1, java.sql.Types.VARCHAR);
 			else
-			    c.setString(i, val);
+			    s.setString(i + 1, val);
 		    }
 		    i++;
 		}
