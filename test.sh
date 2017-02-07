@@ -31,7 +31,8 @@ fetch(r <- dbSendQuery(c, "SELECT count(*) FROM iris"), 1)
 dbGetInfo(r)
 dbHasCompleted(r)
 ## prepared send query
-fetch(dbSendQuery(c, "SELECT Species, count(Species) FROM iris WHERE `Sepal.Width` > ? GROUP BY Species", 3), 1e3, block=1e3)
+fetch(r <- dbSendQuery(c, "SELECT Species as Kind, count(Species) as Count FROM iris WHERE `Sepal.Width` > ? GROUP BY Species", 3), 1e3, block=1e3)
+dbColumnInfo(r)
 ## simple update
 dbSendUpdate(c, "DROP TABLE IF EXISTS foo")
 dbSendUpdate(c, "CREATE TABLE foo (alpha VARCHAR(32), beta INT)")
