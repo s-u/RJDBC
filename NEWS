@@ -7,6 +7,12 @@
 	batch-inserts for more efficient loading. Note that only
 	prepared statements work for now.
 
+    *	use column labels instead of names (#36)
+
+    *	dbColumnInfo() will return the column label in `name' and
+	column name in `field.name' (which is optional, for
+	compatbility).
+
 
 0.2-5	2014-12-18
     *	fix bug in dbUnloadDriver() returning NULL instead of FALSE
