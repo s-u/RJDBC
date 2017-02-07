@@ -3,6 +3,10 @@
 
     *	add schema= argument to dbGetTables() and dbListTables()
 
+    *	support vectorized version of dbSendUpdate() which uses
+	batch-inserts for more efficient loading. Note that only
+	prepared statements work for now.
+
 
 0.2-5	2014-12-18
     *	fix bug in dbUnloadDriver() returning NULL instead of FALSE

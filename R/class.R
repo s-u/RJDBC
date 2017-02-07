@@ -105,7 +105,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
 
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
 
-setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
+setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL, max.batch=10000L) {
   statement <- as.character(statement)[1L]
   ## if the statement starts with {call or {?= call then we use CallableStatement 
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
@@ -118,11 +118,27 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
+    .verify.JDBC.result(s, "Unable to create JDBC prepared statement ", statement)
     on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
-    if (length(list(...))) .fillStatementParameters(s, list(...))
-    if (!is.null(list)) .fillStatementParameters(s, list)
-    .jcall(s, "I", "executeUpdate", check=FALSE)
+    l <- c(list(...), list)
+    if (length(l)) {
+      if (length(tl <- table(sapply(l, length))) > 1) stop("all parameters must have the same length")
+      if (as.integer(names(tl)) > 1) { ## batch insert
+        bx <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCBatchExecute", s, length(l))
+        .verify.JDBC.result(bx, "Unable to create batch-insert object")
+        for (o in l) {
+          if (is.integer(o)) .jcall(bx, "V", "addIntegers", o)
+          else if (is.numeric(o)) .jcall(bx, "V", "addDoubles", o)
+          else .jcall(bx, "V", "addStrings", as.character(o))
+        }
+        .jcall(bx, "V", "execute", as.integer(max.batch))
+        .verify.JDBC.result(bx, "Unable to execute batch-insert query ", statement)
+      } else {
+        .fillStatementParameters(s, l)
+        .jcall(s, "I", "executeUpdate", check=FALSE)
+      }
+    } else
+      .jcall(s, "I", "executeUpdate", check=FALSE)
   } else {
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
     .verify.JDBC.result(s, "Unable to create JDBC statement ",statement)
@@ -241,7 +257,7 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=TRUE, append=FALSE, ...) {
+setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=TRUE, append=FALSE, ..., max.batch=10000L) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
   append <- if (overwrite) FALSE else isTRUE(as.logical(append))
@@ -270,10 +286,11 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   }
   if (length(value[[1]])) {
     inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
-    for (j in 1:length(value[[1]]))
-      dbSendUpdate(conn, inss, list=as.list(value[j,]))
+    ## ake sure everything is a character other than real/int
+    list <- lapply(value, function(o) if (!is.numeric(o)) as.character(o) else o)
+    dbSendUpdate(conn, inss, list=list)
   }
-  if (ac) dbCommit(conn)            
+  if (ac) dbCommit(conn)
 })
 
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
