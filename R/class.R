@@ -324,16 +324,15 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(cts)))
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull hepler class")
   }
+  fetchSize <- 32768L  ## try to limit the number of records returned from DB
   if (n < 0L) { ## infinite pull
-    stride <- 32768L  ## start fairly small to support tiny queries and increase later
-    while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
+    while ((nrec <- .jcall(rp, "I", "fetch", block, fetchSize)) > 0L) {
       for (i in seq.int(cols))
         l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
-      if (nrec < stride) break
-      stride <- 524288L # 512k
+      if (nrec < block) break
     }
   } else {
-    nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
+    nrec <- .jcall(rp, "I", "fetch", as.integer(n), fetchSize)
     for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # as.data.frame is expensive - create it on the fly from the list
