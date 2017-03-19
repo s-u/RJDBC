@@ -1,0 +1,21 @@
+<project name="RJDBC" basedir="." default="build" >
+
+	<property name="target.dir" value="../inst/java" />
+	
+	<target name="clean">
+		<delete dir="../build" />
+	</target>
+	
+	<target name="compile">
+		<mkdir dir="../build"/>
+		<javac srcdir="../java-src" destdir="../build" />
+	</target>
+	
+	<target name="build" depends="compile">
+		<jar jarfile="${target.dir}/RJDBC.jar">
+			<fileset dir="../build" />
+		</jar>
+	</target>
+	
+	
+</project>
