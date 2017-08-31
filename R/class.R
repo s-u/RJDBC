@@ -308,16 +308,21 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   block <- as.integer(block)
   if (length(block) != 1L) stop("invalid block size")
   if (cols < 1L) return(NULL)
-  l <- list()
+  
+  l_template <- list() ## Original allocation of l
+  l_container <- list() ## Creae a list for our result lists
+  length(l_container) <- 1024 ## Allocate a length for the number of blocks it might take to pull back, this should probably not be hardcoded
+  l_container_used_elements <- 0L ## Start counter at 0
+  
   cts <- rep(0L, cols)
   for (i in 1:cols) {
     ct <- .jcall(res@md, "I", "getColumnType", i)
     if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
-      l[[i]] <- numeric()
+      l_template[[i]] <- numeric()
       cts[i] <- 1L
     } else
-      l[[i]] <- character()
-    names(l)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
+      l_template[[i]] <- character()
+    names(l_template)[i] <- .jcall(res@md, "S", "getColumnName", i)
   }
   rp <- res@pull
   if (is.jnull(rp)) {
@@ -327,20 +332,24 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   if (n < 0L) { ## infinite pull
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
-      for (i in seq.int(cols))
-        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+      
+      l_container_used_elements <- l_container_used_elements + 1L ## iterate through the list of chunck containers
+      l_container[[l_container_used_elements]] <- l_template ## create template with names and types for each chunk
+      for (i in seq.int(cols)){
+        l_container[[l_container_used_elements]][[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+      }
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
-    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    for (i in seq.int(cols)) {
+      l_container[[l_container_used_elements]][[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    }
   }
-  # as.data.frame is expensive - create it on the fly from the list
-  attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
-  class(l) <- "data.frame"
-  l
+  data.table::rbindlist(l_container[1:l_container_used_elements])
 })
+
 
 setMethod("dbClearResult", "JDBCResult",
           def = function(res, ...) { .jcall(res@jr, "V", "close"); .jcall(res@stat, "V", "close"); TRUE },
