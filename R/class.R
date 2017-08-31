@@ -322,7 +322,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
       cts[i] <- 1L
     } else
       l_template[[i]] <- character()
-    names(l_template)[i] <- .jcall(res@md, "S", "getColumnName", i)
+    names(l_template)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
   }
   rp <- res@pull
   if (is.jnull(rp)) {
