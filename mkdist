@@ -13,8 +13,19 @@ echo "Removing CVS and backup stuff ..."
 find . -name CVS -o -name .svn | xargs rm -rf
 find . -name \*~ | xargs rm -f
 
+jtarget=1.4
+jver=`java -version 2>&1 | sed -n 's:.*java version "::p' | sed 's:".*::'`
+if test -z "$jver"; then
+    echo "*** WARNING: cannot derermine Java version!"
+else
+    if echo "$jver" | grep ^9 > /dev/null; then
+	echo "NOTE: Java 1.9 detected, changing target to 1.6"
+	jtarget=1.6
+    fi
+fi
+
 mkdir -p inst/java
-javac -d inst/java -source 1.4 -target 1.4 java/*.java || exit 1
+javac -d inst/java -source $jtarget -target $jtarget java/*.java || exit 1
 (cd inst/java; jar fvc RJDBC.jar info; rm -rf info)
 
 echo "Updating version ..."
