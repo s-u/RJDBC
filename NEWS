@@ -1,3 +1,7 @@
+0.2-7	2018-01-24
+    *	cosmetic changes to appease CRAN
+
+
 0.2-6	2018-01-05
     *	move java-src to java
 
