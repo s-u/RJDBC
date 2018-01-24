@@ -2,7 +2,7 @@
 
 PNAME=RJDBC
 VER=`awk -v ORS= '/Version:/ { print $2 }' DESCRIPTION`
-if test "$1" == "-f"; then 
+if test "$1" = "-f"; then 
     echo "${PNAME}_${VER}.tar.gz"
 else
     echo "${VER}"
