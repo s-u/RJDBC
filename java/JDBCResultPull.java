@@ -7,8 +7,10 @@ public class JDBCResultPull {
     public static final int CT_STRING  = 0;
     /** column type: numeric (retrieved as doubles) */
     public static final int CT_NUMERIC = 1;
+    public static final int CT_INTEGER = 2;
     /** NA double value */
     public static final double NA_double = Double.longBitsToDouble(0x7ff00000000007a2L);
+    public static final int NA_integer = -2147483648;
 
     /** active result set */
     ResultSet rs;
@@ -53,7 +55,13 @@ public class JDBCResultPull {
     public void setCapacity(int atMost) {
 	if (capacity != atMost) {
 	    for (int i = 0; i < cols; i++)
-		data[i] = (cTypes[i] == CT_NUMERIC) ? (Object)new double[atMost] : (Object)new String[atMost];
+		//data[i] = (cTypes[i] == CT_NUMERIC) ? (Object)new double[atMost] : (Object)new String[atMost];
+        if(cTypes[i] == CT_NUMERIC)
+            data[i] = (Object)new double[atMost];
+        else if(cTypes[i] == CT_INTEGER)
+            data[i] = (Object)new int[atMost];
+        else
+            data[i] = (Object)new String[atMost];
 	    capacity = atMost;
 	}
     }
@@ -80,6 +88,10 @@ public class JDBCResultPull {
 		    double val = rs.getDouble(i + 1);
 		    if (rs.wasNull()) val = NA_double;
 		    ((double[])data[i])[count] = val; 
+        } else if(cTypes[i] == CT_INTEGER) {
+            int val = rs.getInt(i + 1);
+            if (rs.wasNull()) val = NA_integer;
+            ((int[])data[i])[count] = val;
 		} else
 		    ((String[])data[i])[count] = rs.getString(i + 1); 
 	    count++;
@@ -118,5 +130,14 @@ public class JDBCResultPull {
 	double[] b = new double[count];
 	if (count > 0) System.arraycopy(a, 0, b, 0, count);
 	return b;
+    }
+
+    public int[] getIntegers(int column) {
+        int[] a = (int[]) data[column - 1];
+        if(count == a.length) return a;
+
+        int[] b = new int[count];
+        if(count > 0) System.arraycopy(a, 0, b, 0, count);
+        return b;
     }
 }
