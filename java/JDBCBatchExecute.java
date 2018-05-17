@@ -52,7 +52,7 @@ public class JDBCBatchExecute {
 		while (i < ptr) {
 		    if (types[i] == T_DOUBLE) {
 			double val = ((double[])(cache[i]))[l]; // FIXME: NA?
-            if(val == NA_double)
+            if(Double.isNaN(val))
                 s.setNull(i+1, java.sql.Types.DOUBLE);
             else
     			s.setDouble(i + 1, val);
