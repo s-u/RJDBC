@@ -12,6 +12,7 @@
 \alias{dbListResults,JDBCConnection-method}
 \alias{dbListTables,JDBCConnection-method}
 \alias{dbReadTable,JDBCConnection-method}
+\alias{dbReadTable,JDBCConnection,ANY-method}
 \alias{dbRemoveTable,JDBCConnection-method}
 \alias{dbRollback,JDBCConnection-method}
 \alias{dbSendQuery,JDBCConnection,character-method}
