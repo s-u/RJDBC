@@ -12,6 +12,10 @@ public class JDBCBatchExecute {
     static final int T_DOUBLE = 1;
     static final int T_INT    = 2;
     static final int T_STRING = 3;
+
+    public static final double NA_double = Double.longBitsToDouble(0x7ff00000000007a2L);
+    public static final int NA_integer = -2147483648;
+
     
     public JDBCBatchExecute(PreparedStatement stat, int n) {
 	cache = new Object[n];
@@ -48,10 +52,16 @@ public class JDBCBatchExecute {
 		while (i < ptr) {
 		    if (types[i] == T_DOUBLE) {
 			double val = ((double[])(cache[i]))[l]; // FIXME: NA?
-			s.setDouble(i + 1, val);
+            if(Double.isNaN(val))
+                s.setNull(i+1, java.sql.Types.DOUBLE);
+            else
+    			s.setDouble(i + 1, val);
 		    } else if (types[i] == T_INT) {
 			int val = ((int[])(cache[i]))[l]; // FIXME: NA?
-			s.setInt(i + 1, val);
+            if(val == NA_integer)
+                s.setNull(i+1, java.sql.Types.INTEGER);
+            else
+    			s.setInt(i + 1, val);
 		    } else if(types[i] == T_STRING) {
 			String val = ((String[])(cache[i]))[l];
 			if (val == null)

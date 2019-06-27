@@ -312,11 +312,15 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   cts <- rep(0L, cols)
   for (i in 1:cols) {
     ct <- .jcall(res@md, "I", "getColumnType", i)
-    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
+    if (ct == 4 | ct == 5) {
+      l[[i]] <- integer()
+      cts[i] <- 2L
+    } else if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
       l[[i]] <- numeric()
       cts[i] <- 1L
-    } else
+    } else {
       l[[i]] <- character()
+    }
     names(l)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
   }
   rp <- res@pull
@@ -328,13 +332,17 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
-        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i)
+                            else if(cts[i] == 2L) .jcall(rp, "[I", "getIntegers", i)
+                            else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
-    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i)
+                                       else if(cts[i] == 2L) .jcall(rp, "[I", "getIntegers", i)
+                                       else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
@@ -349,7 +357,10 @@ setMethod("dbClearResult", "JDBCResult",
 setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...) list(has.completed=TRUE), valueClass="list")
 
 ## this is not needed for recent DBI, but older implementations didn't provide default methods
-setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) TRUE, valueClass="logical")
+#setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) TRUE, valueClass="logical")
+setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...)
+          .jcall(res@jr, "Z", "isClosed"),
+          valueClass="logical")
 
 setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
@@ -359,7 +370,9 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
     l$name[i] <- .jcall(res@md, "S", "getColumnLabel", i)
     l$field.type[i] <- .jcall(res@md, "S", "getColumnTypeName", i)
     ct <- .jcall(res@md, "I", "getColumnType", i)
-    l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
+    l$data.type[i] <- if(ct == 4 | ct == 5) "integer"
+                      else if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric"
+                      else "character"
     l$field.name[i] <- .jcall(res@md, "S", "getColumnName", i)
   }
   as.data.frame(l, row.names=1:cols)    
