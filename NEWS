@@ -1,3 +1,11 @@
+0.2-8	(under development)
+    *	re-use Java helper for subsequent fetch() calls on the same
+	result set which should make them more efficient.
+
+    *	set `has.completed` only if the fetch() has encountered
+	end of the result set (#73)
+
+
 0.2-7	2018-01-24
     *	cosmetic changes to appease CRAN
 
