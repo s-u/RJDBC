@@ -311,7 +311,8 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 
 setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
 
-setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, ...) {
+setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, use.label=TRUE, ...) {
+    getColumnLabel <- if(use.label) "getColumnLabel" else "getColumName"
   cols <- .jcall(res@md, "I", "getColumnCount")
   block <- as.integer(block)
   if (length(block) != 1L) stop("invalid block size")
@@ -325,7 +326,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
       cts[i] <- 1L
     } else
       l[[i]] <- character()
-    names(l)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
+    names(l)[i] <- .jcall(res@md, "S", getColumnLabel, i)
   }
   rp <- res@env$pull
   if (is.jnull(rp)) {

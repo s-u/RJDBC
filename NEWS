@@ -5,6 +5,9 @@
     *	set `has.completed` only if the fetch() has encountered
 	end of the result set (#73)
 
+    *	add `use.label` argument to fetch() - if set to `FALSE`
+	then column names are used instead of labels (#74)
+
 
 0.2-7	2018-01-24
     *	cosmetic changes to appease CRAN

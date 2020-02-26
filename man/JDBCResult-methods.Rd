@@ -24,6 +24,11 @@
   fetch size is not changed. This is only a hint, drivers are free to
   ignore it.
 
+  Finally, \code{use.label} logical argument determines whether
+  column lables are used for naming (\code{TRUE}, default) or column
+  names should be used (\code{FALSE}) since some database drivers do not
+  implement labels correctly.
+
   \code{dbClearResult} releases the result set.
 
   \code{dbColumnInfo} returns basic information about the columns
