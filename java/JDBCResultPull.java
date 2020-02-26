@@ -24,6 +24,8 @@ public class JDBCResultPull {
     int cols;
     /** end of result set */
     boolean completed;
+    /** did we peek to see if we're finished? If true then do NOT advance the cursor at the next record. */
+    boolean peek;
 
     /** create a JDBCResultPull from teh current set with the
      * specified column types. The column type definition must match
@@ -39,6 +41,7 @@ public class JDBCResultPull {
 	capacity = -1;
 	count = 0;
 	completed = false;
+	peek = false;
     }
 
     /** retrieve the number of columns */
@@ -47,8 +50,21 @@ public class JDBCResultPull {
     /** get the number of loaded rows */
     public int count() { return count; }
 
-    /** check whether the result has been fetcehd */
-    public boolean completed() { return completed; }
+    /** check whether the result has been fetched */
+    public boolean completed() throws java.sql.SQLException {
+	if (!completed && !peek) {
+	    if (rs.isClosed()) {
+		completed = true;
+		return true;
+	    }
+	    if (rs.next())
+		peek = true;
+	    else
+		completed = true;
+	}
+
+	return completed;
+    }
 
     /** allocate arrays for the given capacity. Normally this method
      * is not called directly since @link{fetch()} automatically
@@ -80,7 +96,8 @@ public class JDBCResultPull {
 	    } catch (java.sql.SQLException e) { } // we can't use SQLFeatureNotSupportedException because that's 1.6+ only
 	}
 	count = 0;
-	while (rs.next()) {
+	while (peek || rs.next()) {
+	    peek = false;
 	    for (int i = 0; i < cols; i++)
 		if (cTypes[i] == CT_NUMERIC) {
 		    double val = rs.getDouble(i + 1);

@@ -367,7 +367,9 @@ setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...)
 
 setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) {
     pull <- res@env$pull
-    if (is.jnull(pull)) .jcall(res@jr, "Z", "isClosed") else .jcall(pull, "Z", "completed")
+    comp <- if (is.jnull(pull)) .jcall(res@jr, "Z", "isClosed") else .jcall(pull, "Z", "completed")
+    .jcheck(TRUE)
+    comp
 },
     valueClass="logical")
 
