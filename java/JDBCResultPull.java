@@ -22,6 +22,8 @@ public class JDBCResultPull {
     int count;
     /** number of columns */
     int cols;
+    /** end of result set */
+    boolean completed;
 
     /** create a JDBCResultPull from teh current set with the
      * specified column types. The column type definition must match
@@ -36,6 +38,7 @@ public class JDBCResultPull {
 	data = new Object[cols];
 	capacity = -1;
 	count = 0;
+	completed = false;
     }
 
     /** retrieve the number of columns */
@@ -43,6 +46,9 @@ public class JDBCResultPull {
     
     /** get the number of loaded rows */
     public int count() { return count; }
+
+    /** check whether the result has been fetcehd */
+    public boolean completed() { return completed; }
 
     /** allocate arrays for the given capacity. Normally this method
      * is not called directly since @link{fetch()} automatically
@@ -86,6 +92,7 @@ public class JDBCResultPull {
 	    if (count >= capacity)
 		return count;
 	}
+	completed = true; /* next() result was false so we're done */
 	return count;
     }
     

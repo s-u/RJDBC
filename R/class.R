@@ -100,7 +100,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
   } 
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data for ",statement, " in dbSendQuery")
-  new("JDBCResult", jr=r, md=md, stat=s, pull=.jnull())
+  new("JDBCResult", jr=r, md=md, stat=s, env=new.env(parent=emptyenv()))
 })
 
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
@@ -170,7 +170,7 @@ setMethod("dbListResults", "JDBCConnection",
 .fetch.result <- function(r) {
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data")
-  res <- new("JDBCResult", jr=r, md=md, stat=.jnull(), pull=.jnull())
+  res <- new("JDBCResult", jr=r, md=md, stat=.jnull(), env=new.env(parent=emptyenv()))
   fetch(res, -1)
 }
 
@@ -309,7 +309,7 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 ## Since the life of a result set depends on the life of the statement, we have to explicitly
 ## save the later as well (and close both at the end)
 
-setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", pull="jobjRef"))
+setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
 
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
@@ -327,10 +327,11 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
       l[[i]] <- character()
     names(l)[i] <- .jcall(res@md, "S", "getColumnLabel", i)
   }
-  rp <- res@pull
+  rp <- res@env$pull
   if (is.jnull(rp)) {
     rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(cts)))
-    .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull hepler class")
+    .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull helper class")
+    res@env$pull <- rp
   }
   if (n < 0L) { ## infinite pull
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
@@ -351,13 +352,24 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
 })
 
 setMethod("dbClearResult", "JDBCResult",
-          def = function(res, ...) { .jcall(res@jr, "V", "close"); .jcall(res@stat, "V", "close"); TRUE },
+          def = function(res, ...) {
+              .jcall(res@jr, "V", "close")
+              .jcall(res@stat, "V", "close")
+              res@env$pull <- .jnull()
+              TRUE
+          },
           valueClass = "logical")
 
-setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...) list(has.completed=TRUE), valueClass="list")
+setMethod("dbGetInfo", "JDBCResult", def=function(dbObj, ...)
+    list(
+        has.completed=dbHasCompleted(dbObj)
+    ), valueClass="list")
 
-## this is not needed for recent DBI, but older implementations didn't provide default methods
-setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) TRUE, valueClass="logical")
+setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) {
+    pull <- res@env$pull
+    if (is.jnull(pull)) .jcall(res@jr, "Z", "isClosed") else .jcall(pull, "Z", "completed")
+},
+    valueClass="logical")
 
 setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
