@@ -231,8 +231,16 @@ setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%",
   .fetch.result(r)
 })
 
-setMethod("dbReadTable", "JDBCConnection", def=function(conn, name, ...)
-          dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(name,TRUE,conn@identifier.quote))))
+## There is a bug in DBI which consturcts invalid SQL in its default method for
+## name=character. So we have to make sure it doesn't get picked by making sure
+## we also set a character method even if we don't actually require it.
+setMethod("dbReadTable", signature(conn="JDBCConnection", name="character"), def=function(conn, name, ...)
+    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(name,TRUE,conn@identifier.quote))))
+
+## cover all the other cases where the user likely intended a coersion
+setMethod("dbReadTable", signature(conn="JDBCConnection", name="ANY"), def=function(conn, name, ...)
+    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(as.chracter(name),TRUE,conn@identifier.quote))))
+
 
 setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
           def = function(dbObj, obj, ...) {
