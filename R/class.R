@@ -239,7 +239,7 @@ setMethod("dbReadTable", signature(conn="JDBCConnection", name="character"), def
 
 ## cover all the other cases where the user likely intended a coersion
 setMethod("dbReadTable", signature(conn="JDBCConnection", name="ANY"), def=function(conn, name, ...)
-    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(as.chracter(name),TRUE,conn@identifier.quote))))
+    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(as.character(name),TRUE,conn@identifier.quote))))
 
 
 setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
