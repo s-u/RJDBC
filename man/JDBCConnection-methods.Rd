@@ -5,15 +5,19 @@
 \alias{dbDataType,JDBCConnection-method}
 \alias{dbDisconnect,JDBCConnection-method}
 \alias{dbExistsTable,JDBCConnection-method}
+\alias{dbExistsTable,JDBCConnection,ANY-method}
 \alias{dbGetException,JDBCConnection-method}
 \alias{dbGetInfo,JDBCConnection-method}
 \alias{dbGetQuery,JDBCConnection,character-method}
 \alias{dbListFields,JDBCConnection-method}
+\alias{dbListFields,JDBCConnection,ANY-method}
 \alias{dbListResults,JDBCConnection-method}
 \alias{dbListTables,JDBCConnection-method}
 \alias{dbReadTable,JDBCConnection-method}
 \alias{dbReadTable,JDBCConnection,ANY-method}
+\alias{dbReadTable,JDBCConnection,character-method}
 \alias{dbRemoveTable,JDBCConnection-method}
+\alias{dbRemoveTable,JDBCConnection,ANY-method}
 \alias{dbRollback,JDBCConnection-method}
 \alias{dbSendQuery,JDBCConnection,character-method}
 \alias{dbSendUpdate}
@@ -23,6 +27,7 @@
 \alias{dbGetFields}
 \alias{dbGetFields,JDBCConnection-method}
 \alias{dbWriteTable,JDBCConnection-method}
+\alias{dbWriteTable,JDBCConnection,ANY-method}
 \title{Methods for the class `JDBCConnect' in Package `RJDBC'}
 \description{
   Methods for the class `JDBCConnection' in Package `RJDBC'.
