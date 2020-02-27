@@ -8,6 +8,12 @@
     *	add `use.label` argument to fetch() - if set to `FALSE`
 	then column names are used instead of labels (#74)
 
+    *	change both semantics and defaults for `append=FALSE` and
+	`overwrite=FALSE` in dbWriteTable() to match what is
+	documented in `DBI`: append=TRUE no longer requires the
+	existence of the target table and the options are mutally
+	exclusive (i.e. append=TRUE, overwrite=TRUE is illegal).
+
 
 0.2-7	2018-01-24
     *	cosmetic changes to appease CRAN

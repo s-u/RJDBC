@@ -265,10 +265,11 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=TRUE, append=FALSE, ..., max.batch=10000L) {
+setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, ..., max.batch=10000L) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
-  append <- if (overwrite) FALSE else isTRUE(as.logical(append))
+  append <- isTRUE(as.logical(append))
+  if (overwrite && append) stop("overwrite=TRUE and append=TRUE are mutually exclusive")
   if (is.vector(value) && !is.list(value)) value <- data.frame(x=value)
   if (length(value)<1) stop("value must have at least one column")
   if (is.null(names(value))) names(value) <- paste("V",1:length(value),sep='')
@@ -281,7 +282,7 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   if (dbExistsTable(conn, name)) {
     if (overwrite) dbRemoveTable(conn, name)
     else if (!append) stop("Table `",name,"' already exists")
-  } else if (append) stop("Cannot append to a non-existing table `",name,"'")
+  } else append <- FALSE ## if the table doesn't exist, append has no meaning
   fdef <- paste(.sql.qescape(names(value), TRUE, conn@identifier.quote),fts,collapse=',')
   qname <- .sql.qescape(name, TRUE, conn@identifier.quote)
   if (ac) {
@@ -294,7 +295,7 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   }
   if (length(value[[1]])) {
     inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
-    ## ake sure everything is a character other than real/int
+    ## make sure everything is a character other than real/int
     list <- lapply(value, function(o) if (!is.numeric(o)) as.character(o) else o)
     dbSendUpdate(conn, inss, list=list)
   }
