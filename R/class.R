@@ -147,6 +147,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   }
   x <- .jgetEx(TRUE)
   if (!is.jnull(x)) stop("execute JDBC update query failed in dbSendUpdate (", .jcall(x, "S", "getMessage"),")")
+  invisible(TRUE)
 })
 
 setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ...) {
@@ -201,9 +202,10 @@ setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", schem
   .fetch.result(r)
 })
 
-setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, ...) (length(dbListTables(conn, name))>0))
+setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, ...) length(dbListTables(conn, name)) > 0)
 
-setMethod("dbRemoveTable", "JDBCConnection", def=function(conn, name, ...) dbSendUpdate(conn, paste("DROP TABLE", name))==0)
+setMethod("dbRemoveTable", "JDBCConnection", def=function(conn, name, silent=FALSE, ...)
+    if (silent) tryCatch(dbRemoveTable(conn, name, silent=FALSE), error=function(e) FALSE) else dbSendUpdate(conn, paste("DROP TABLE", name)))
 
 setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%", full=FALSE, ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
