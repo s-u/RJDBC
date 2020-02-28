@@ -14,9 +14,20 @@
 	existence of the target table and the options are mutally
 	exclusive (i.e. append=TRUE, overwrite=TRUE is illegal).
 
+    *	dbWriteTable() also gains `force=TRUE` option (disabled by
+	default) which skips the existence check for the target and
+	proceeds with removal and/or insertion regardless. This can be
+	useful with append=TRUE where the target is not a table and
+	thus would not pass the dbExistsTable() check (see #27).
+
     *	dbRemoveTable() returns TRUE on success (#20). On failure it
 	will fail with an error if silent=FALSE (as it always did so
 	far) or return FALSE if silent=TRUE.
+
+    *	JDBC errors are reported such that the statement is shown at
+	the end. Previously the statement preceded the JDBC error, so
+	long statements caused errors to be truncated (#32). This also
+	opens up the possibility of more structured error objects.
 
 
 0.2-7	2018-01-24
