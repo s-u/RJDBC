@@ -29,6 +29,9 @@
 	long statements caused errors to be truncated (#32). This also
 	opens up the possibility of more structured error objects.
 
+    *	n, block and use.label are now passed through from
+        dbGetQuery() to fetch() (#44)
+
 
 0.2-7	2018-01-24
     *	cosmetic changes to appease CRAN
