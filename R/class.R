@@ -151,11 +151,11 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   invisible(TRUE)
 })
 
-setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ...) {
+setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., n=-1, block=2048L, use.label=TRUE) {
   r <- dbSendQuery(conn, statement, ...)
   ## Teradata needs this - closing the statement also closes the result set according to Java docs
   on.exit(.jcall(r@stat, "V", "close"))
-  fetch(r, -1)
+  fetch(r, n, block=block, use.label=use.label)
 })
 
 setMethod("dbGetException", "JDBCConnection",
@@ -318,8 +318,9 @@ setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@j
 
 setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
 
+## NOTE: if you modify any defaults or add arguments, also check dbGetQuery() which attempts to pass those through!
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, use.label=TRUE, ...) {
-    getColumnLabel <- if(use.label) "getColumnLabel" else "getColumName"
+  getColumnLabel <- if(use.label) "getColumnLabel" else "getColumnName"
   cols <- .jcall(res@md, "I", "getColumnCount")
   block <- as.integer(block)
   if (length(block) != 1L) stop("invalid block size")
