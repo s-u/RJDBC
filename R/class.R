@@ -15,14 +15,15 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
 }
 
-.verify.JDBC.result <- function (result, ...) {
-  if (is.jnull(result)) {
-    x <- .jgetEx(TRUE)
-    if (is.jnull(x))
-      stop(...)
-    else
-      stop(...," (",.jcall(x, "S", "getMessage"),")")
-  }
+.verify.JDBC.result <- function (result, ..., statement) {
+    statement <- if (missing(statement)) "" else paste0("\n  Statement: ", statement)
+    if (is.jnull(result)) {
+        x <- .jgetEx(TRUE)
+        if (is.jnull(x))
+            stop(..., statement)
+        else
+            stop(..., "\n  JDBC ERROR: ",.jcall(x, "S", "getMessage"), statement)
+    }
 }
 
 setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of active connections."); list() })
@@ -80,26 +81,26 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
   ## if the statement starts with {call or {?= call then we use CallableStatement 
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
+    .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
-    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ", statement=statement)
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC prepared statement ", statement)
+    .verify.JDBC.result(s, "Unable to execute JDBC prepared statement", statement=statement)
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
-    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
   } else { ## otherwise use a simple statement some DBs fail with the above)
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
-    .verify.JDBC.result(s, "Unable to create simple JDBC statement ",statement)
+    .verify.JDBC.result(s, "Unable to create simple JDBC statement", statement=statement)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", as.character(statement)[1], check=FALSE)
-    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
   } 
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
-  .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data for ",statement, " in dbSendQuery")
+  .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data in dbSendQuery", statement=statement)
   new("JDBCResult", jr=r, md=md, stat=s, env=new.env(parent=emptyenv()))
 })
 
@@ -110,15 +111,15 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   ## if the statement starts with {call or {?= call then we use CallableStatement 
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
-    .verify.JDBC.result(s, "Unable to execute JDBC callable statement ",statement)
+    .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
     on.exit(.jcall(s, "V", "close")) # same as ORA issue below and #4
     if (length(list(...))) .fillStatementParameters(s, list(...))
     if (!is.null(list)) .fillStatementParameters(s, list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
-    .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ",statement)
+    .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
-    .verify.JDBC.result(s, "Unable to create JDBC prepared statement ", statement)
+    .verify.JDBC.result(s, "Unable to create JDBC prepared statement", statement=statement)
     on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
     l <- c(list(...), list)
     if (length(l)) {
@@ -132,7 +133,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
           else .jcall(bx, "V", "addStrings", as.character(o))
         }
         .jcall(bx, "V", "execute", as.integer(max.batch))
-        .verify.JDBC.result(bx, "Unable to execute batch-insert query ", statement)
+        .verify.JDBC.result(bx, "Unable to execute batch-insert query", statement=statement)
       } else {
         .fillStatementParameters(s, l)
         .jcall(s, "I", "executeUpdate", check=FALSE)
@@ -141,7 +142,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
       .jcall(s, "I", "executeUpdate", check=FALSE)
   } else {
     s <- .jcall(conn@jc, "Ljava/sql/Statement;", "createStatement")
-    .verify.JDBC.result(s, "Unable to create JDBC statement ",statement)
+    .verify.JDBC.result(s, "Unable to create JDBC statement ", statement=statement)
     on.exit(.jcall(s, "V", "close")) # in theory this is not necesary since 's' will go away and be collected, but appearently it may be too late for Oracle (ORA-01000)
     .jcall(s, "I", "executeUpdate", as.character(statement)[1], check=FALSE)
   }
@@ -212,7 +213,7 @@ setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%"
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
   r <- .jcall(md, "Ljava/sql/ResultSet;", "getColumns", .jnull("java/lang/String"),
               .jnull("java/lang/String"), name, pattern, check=FALSE)
-  .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ",name)
+  .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ", name)
   on.exit(.jcall(r, "V", "close"))
   ts <- character()
   while (.jcall(r, "Z", "next"))
@@ -228,7 +229,7 @@ setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%",
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
   r <- .jcall(md, "Ljava/sql/ResultSet;", "getColumns", .jnull("java/lang/String"),
               .jnull("java/lang/String"), name, pattern, check=FALSE)
-  .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ",name)
+  .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ", name)
   on.exit(.jcall(r, "V", "close"))
   .fetch.result(r)
 })
