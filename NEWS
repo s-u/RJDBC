@@ -14,6 +14,10 @@
 	existence of the target table and the options are mutally
 	exclusive (i.e. append=TRUE, overwrite=TRUE is illegal).
 
+    *	dbRemoveTable() returns TRUE on success (#20). On failure it
+	will fail with an error if silent=FALSE (as it always did so
+	far) or return FALSE if silent=TRUE.
+
 
 0.2-7	2018-01-24
     *	cosmetic changes to appease CRAN
