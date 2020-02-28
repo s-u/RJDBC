@@ -267,7 +267,7 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, ..., max.batch=10000L) {
+setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, ..., max.batch=10000L) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
   append <- isTRUE(as.logical(append))
@@ -281,7 +281,9 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
     if (!is.data.frame(value)) value <- as.data.frame(value)
   }
   fts <- sapply(value, dbDataType, dbObj=conn)
-  if (dbExistsTable(conn, name)) {
+  if (isTRUE(as.logical(force))) {
+    if (overwrite) dbRemoveTable(conn, name, silent=TRUE)
+  } else if (dbExistsTable(conn, name)) {
     if (overwrite) dbRemoveTable(conn, name)
     else if (!append) stop("Table `",name,"' already exists")
   } else append <- FALSE ## if the table doesn't exist, append has no meaning
@@ -302,6 +304,7 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
     dbSendUpdate(conn, inss, list=list)
   }
   if (ac) dbCommit(conn)
+  invisible(TRUE)
 })
 
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
