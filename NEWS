@@ -1,4 +1,4 @@
-0.2-8	(under development)
+0.2-8	2020-03-06
     *	re-use Java helper for subsequent fetch() calls on the same
 	result set which should make them more efficient.
 
