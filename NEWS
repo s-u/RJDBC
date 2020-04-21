@@ -1,3 +1,16 @@
+0.2-9
+    *	All Java-related errors are signalled by throwing error
+	conditions. If a Java error occurred, the condition will be of
+	the class JDBC.exception with the Java class names of the
+	excption as subclasses. Such objects have following slots:
+	 - desc: string, description of the operation error
+	 - jex: Java obejct, reference tothe Java exception object
+	 - statement: string (or NULL), executed statement
+	This allows the programmatic use of tryCatch() to selectively
+	catch exceptions and/or to use further Java utilities, such as
+	e$jex$printStackTrace()
+
+
 0.2-8	2020-03-06
     *	re-use Java helper for subsequent fetch() calls on the same
 	result set which should make them more efficient.
