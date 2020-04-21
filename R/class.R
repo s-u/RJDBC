@@ -15,15 +15,50 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
 }
 
+## construct list of class names all the way down to Object
+## It is guarded by tryCatch() so should always return, possibly character()
+## NOTE: uses Java calls so exceptions must be cleared prior, it will
+## clear exceptions if it fails itself
+.classes <- function(x) {
+    cl <- character()
+    tryCatch(
+        if (!is.jnull(x)) {
+            c <- .jcall(x, "Ljava/lang/Class;", "getClass")
+            while(!is.jnull(c)) {
+                cl <- c(cl, .jcall(c, "S", "getName"))
+                c <- .jcall(c, "Ljava/lang/Class;", "getSuperclass")
+            }
+        }, error=function(e) {
+            warning("Error while collecting class hierarchy in Java error handing")
+            .jcheck(TRUE)
+        })
+    cl
+}
+
+## calls .jgetEx(TRUE) and raises a JDBC.exception condition including
+## class hierarchy of the Java exception
+## returns TRUE invisibly if there is no exception
+.verify.ex <- function (..., statement, class=character(), call=sys.call(-1)) {
+    statement.txt <- if (missing(statement)) "" else paste0("\n  Statement: ", statement)
+    if (missing(statement)) statement <- NULL
+    x <- .jgetEx(TRUE)
+    if (!is.jnull(x))
+        stop(errorCondition(paste0(..., "\n  JDBC ERROR: ",.jcall(x, "S", "getMessage"), statement.txt), call=call,
+                            desc=paste0(...), jex=x, statement=statement, class=c(class, "JDBC.exception", .classes(x))))
+    invisible(TRUE)
+}
+
+## requires result to be non-NULL or else calls .verify.ex() and raises an exception (even if there is no Java exception)
+## The error has always at least JDBC.result.error class
 .verify.JDBC.result <- function (result, ..., statement) {
-    statement <- if (missing(statement)) "" else paste0("\n  Statement: ", statement)
     if (is.jnull(result)) {
-        x <- .jgetEx(TRUE)
-        if (is.jnull(x))
-            stop(..., statement)
-        else
-            stop(..., "\n  JDBC ERROR: ",.jcall(x, "S", "getMessage"), statement)
+        .verify.ex(..., statement=statement, class="JDBC.result.error", call=sys.call(-2))
+        ## if we get here then there is no exception - just no result
+        statement.txt <- if (missing(statement)) "" else paste0("\n  Statement: ", statement)
+        if (missing(statement)) statement <- NULL
+        stop(errorCondition(paste0(..., statement.txt), desc=paste0(..., statement.txt), statement=statement, class="JDBC.result.error", call=sys.call(-1)))
     }
+    invisible(TRUE)
 }
 
 setMethod("dbListConnections", "JDBCDriver", def=function(drv, ...) { warning("JDBC driver maintains no list of active connections."); list() })
@@ -48,7 +83,7 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
     if (length(password)==1 && nzchar(password)) .jcall(p, "Ljava/lang/Object;", "setProperty", "password", as.character(password))
     l <- list(...)
     if (length(names(l))) for (n in names(l)) .jcall(p, "Ljava/lang/Object;", "setProperty", n, as.character(l[[n]]))
-    jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p)
+    jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p, check=FALSE)
   }
   .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
   new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
@@ -146,9 +181,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
     on.exit(.jcall(s, "V", "close")) # in theory this is not necesary since 's' will go away and be collected, but appearently it may be too late for Oracle (ORA-01000)
     .jcall(s, "I", "executeUpdate", as.character(statement)[1], check=FALSE)
   }
-  x <- .jgetEx(TRUE)
-  if (!is.jnull(x)) stop("execute JDBC update query failed in dbSendUpdate (", .jcall(x, "S", "getMessage"),")")
-  invisible(TRUE)
+  .verify.ex("execute JDBC update query failed in dbSendUpdate", statement=statement)
 })
 
 setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., n=-1, block=2048L, use.label=TRUE) {
