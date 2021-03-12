@@ -236,7 +236,7 @@ setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", schem
   .fetch.result(r)
 })
 
-setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, ...) length(dbListTables(conn, name)) > 0)
+setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, schema=NULL, ...) length(dbListTables(conn, name, schema)) > 0)
 
 setMethod("dbRemoveTable", "JDBCConnection", def=function(conn, name, silent=FALSE, ...)
     if (silent) tryCatch(dbRemoveTable(conn, name, silent=FALSE), error=function(e) FALSE) else dbSendUpdate(conn, paste("DROP TABLE", name)))
