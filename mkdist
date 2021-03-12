@@ -3,30 +3,32 @@
 PNAME=RJDBC
 SWD=`pwd`
 echo "Removing previous dist ..."
-rm -rf /tmp/${PNAME}
+rm -rf "/tmp/${PNAME}"
 echo "Copying package base ..."
-cp -r ../${PNAME} /tmp
+cp -r "../${PNAME}" /tmp
 
-cd /tmp/${PNAME}
+cd "/tmp/${PNAME}"
 
 echo "Removing CVS and backup stuff ..."
 find . -name CVS -o -name .svn | xargs rm -rf
 find . -name \*~ | xargs rm -f
 
-jtarget=1.4
-jver=`java -version 2>&1 | sed -n 's:.*java version "::p' | sed 's:".*::'`
-if test -z "$jver"; then
-    echo "*** WARNING: cannot derermine Java version!"
-else
-    if echo "$jver" | grep ^9 > /dev/null; then
-	echo "NOTE: Java 1.9 detected, changing target to 1.6"
-	jtarget=1.6
-    fi
-fi
+rm -rf "/tmp/${PNAME}"/.git*
 
 mkdir -p inst/java
-javac -d inst/java -source $jtarget -target $jtarget java/*.java || exit 1
-(cd inst/java; jar fvc RJDBC.jar info; rm -rf info)
+
+for jtarget in 1.4 1.6 1.8; do
+    echo " - Attempting to compile for Java $jtarget ..."
+    if javac -d inst/java -source $jtarget -target $jtarget java/*.java; then	
+	(cd inst/java; jar fvc RJDBC.jar info; rm -rf info)
+	break
+    fi
+done
+
+if test ! -e inst/java/RJDBC.jar; then
+    echo "*** ERROR: could not compile Java sources! We need working JDK!"
+    exit 1
+fi
 
 echo "Updating version ..."
 VER=`./version`
