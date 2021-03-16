@@ -4,11 +4,13 @@
 	the class JDBC.exception with the Java class names of the
 	excption as subclasses. Such objects have following slots:
 	 - desc: string, description of the operation error
-	 - jex: Java obejct, reference tothe Java exception object
+	 - jex: Java object, reference to the Java exception object
 	 - statement: string (or NULL), executed statement
 	This allows the programmatic use of tryCatch() to selectively
 	catch exceptions and/or to use further Java utilities, such as
 	e$jex$printStackTrace()
+
+    *	add `schema=` to `dbExistsTable()` (#84)
 
 
 0.2-8	2020-03-06
