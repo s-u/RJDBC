@@ -341,8 +341,31 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   invisible(TRUE)
 })
 
-setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "commit"); TRUE})
-setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {.jcall(conn@jc, "V", "rollback"); TRUE})
+setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {
+    .jcall(conn@jc, "V", "commit")
+    .verify.ex("commit failed")
+    .jcall(conn@jc, "V", "setAutoCommit", TRUE)
+    .verify.ex("enabling auto-commit failed")
+    invisible(TRUE)
+})
+
+setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {
+    .jcall(conn@jc, "V", "rollback")
+    .verify.ex("rollback failed")
+    .jcall(conn@jc, "V", "setAutoCommit", TRUE)
+    .verify.ex("enabling auto-commit failed")
+    invisible(TRUE)
+})
+
+setMethod("dbBegin", "JDBCConnection", def=function(conn, force=FALSE, ...) {
+    ac <- .jcall(conn@jc, "Z", "getAutoCommit")
+    .verify.ex("cannot determine transaction state")
+    if (!force && !isTRUE(ac))
+        stop("JDBC connection is already in transaction mode")
+    .jcall(conn@jc, "V", "setAutoCommit", FALSE)
+    .verify.ex("disabling auto-commit failed")
+    invisible(TRUE)
+})
 
 ##=== JDBCResult
 ## jr - result set, md - metadata, stat - statement

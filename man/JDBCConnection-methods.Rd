@@ -1,6 +1,7 @@
 \name{JDBCConnection-methods}
 \docType{methods}
 \alias{JDBCConnection-methods}
+\alias{dbBegin,JDBCConnection-method}
 \alias{dbCommit,JDBCConnection-method}
 \alias{dbDataType,JDBCConnection-method}
 \alias{dbDisconnect,JDBCConnection-method}
@@ -55,6 +56,7 @@ dbGetFields (conn, ...)
 }
 \section{Methods}{
   \describe{
+    \item{dbBegin}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbCommit}{\code{signature(conn = "JDBCConnection", ...)}}
     \item{dbDataType}{\code{signature(dbObj = "JDBCConnection", obj =
 	"ANY", ...)}}
