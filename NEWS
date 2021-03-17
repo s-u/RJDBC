@@ -12,6 +12,10 @@
 
     *	add `schema=` to `dbExistsTable()` (#84)
 
+    *	add `findDrivers()` function which uses Java Service Provider
+	mechanism (in Java 1.6 and higher) to find all JDBC driver
+	classes on the class path.
+
 
 0.2-8	2020-03-06
     *	re-use Java helper for subsequent fetch() calls on the same

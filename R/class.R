@@ -3,6 +3,14 @@
 setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
 
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
+    ## we allow the user to supply the class itself in case they got
+    ## it through some other means (like findDrivers())
+    if (is(driverClass, "jobjRef")) {
+        if (!isTRUE(.jcall(.jfindClass("java.sql.Driver"), "Z", "isInstance", .jcast(driverClass, "java.lang.Object"))))
+            stop("Provided class object is not a subclass of java.sql.Driver")
+        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv))
+    }
+
   ## expand all paths in the classPath
   classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
   .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
@@ -13,6 +21,23 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
   .jcheck(TRUE)
   if (is.jnull(jdrv)) jdrv <- .jnull()
   new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
+}
+
+findDrivers <- function(classPath="", service="java.sql.Driver", loader=NULL) {
+    ## we have to make sure we have a JVM
+    classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
+    .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
+    .jaddClassPath(system.file("java", "RJDBC.jar", package="RJDBC"))
+
+    l <- if (is.jnull(loader))
+             .jcall("java.util.ServiceLoader", "Ljava/util/ServiceLoader;", "load", .jfindClass(service))
+         else
+             .jcall("java.util.ServiceLoader", "Ljava/util/ServiceLoader;", "load", .jfindClass(service), .jcast(loader, "java.lang.ClassLoader"))
+    i <- .jcall(l, "Ljava/util/Iterator;", "iterator")
+    d <- list()
+    while (.jcall(i, "Z", "hasNext"))
+        d <- c(d, list(.jcall(i, "Ljava/lang/Object;", "next")))
+    d
 }
 
 ## construct list of class names all the way down to Object
