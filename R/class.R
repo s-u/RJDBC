@@ -406,15 +406,21 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   block <- as.integer(block)
   if (length(block) != 1L) stop("invalid block size")
   if (cols < 1L) return(NULL)
-  l <- list()
-  cts <- rep(0L, cols)
+  l <- vector("list", cols)
+  cts <- rep(0L, cols) ## colum type (as per JDBC)
+  rts <- rep(0L, cols) ## retrieval types (0 = string, 1 = double)
   for (i in 1:cols) {
-    ct <- .jcall(res@md, "I", "getColumnType", i)
+    cts[i] <- ct <- .jcall(res@md, "I", "getColumnType", i)
+    l[[i]] <- character()
     if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
-      l[[i]] <- numeric()
-      cts[i] <- 1L
-    } else
-      l[[i]] <- character()
+        ## some numeric types may exceed double precision (see #83)
+        ## those must be retrieved as strings
+        cp <- .jcall(res@md, "I", "getPrecision", i)
+        if (cp <= 15) {
+            l[[i]] <- numeric()
+            rts[i] <- 1L
+        }
+    }
     names(l)[i] <- .jcall(res@md, "S", getColumnLabel, i)
   }
   rp <- res@env$pull
@@ -423,7 +429,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull helper class")
     res@env$pull <- rp
   }
-  if (n < 0L) { ## infinite pull
+  if (n < 0L) { ## infinite pull - FIXME: we append instead of collect+join - should we do the latter?
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
@@ -438,6 +444,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"
+  ## FIXME: we could post-process the result based on cts to convert things like DATETIME (see #19)
   l
 })
 

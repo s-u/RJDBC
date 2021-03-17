@@ -12,6 +12,10 @@
 
     *	add `schema=` to `dbExistsTable()` (#84)
 
+    *	check precision of numeric types and revert to string
+	representation if it is more than 15 to avoid loss of
+	precision at conversion time. (#83)
+
     *	add `findDrivers()` function which uses Java Service Provider
 	mechanism (in Java 1.6 and higher) to find all JDBC driver
 	classes on the class path.
