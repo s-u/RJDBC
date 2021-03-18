@@ -412,11 +412,12 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   for (i in 1:cols) {
     cts[i] <- ct <- .jcall(res@md, "I", "getColumnType", i)
     l[[i]] <- character()
+    ## NOTE: this is also needed in dbColumnInfo()
     if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
         ## some numeric types may exceed double precision (see #83)
         ## those must be retrieved as strings
         cp <- .jcall(res@md, "I", "getPrecision", i)
-        if (cp <= 15) {
+        if (cp <= 15 || ct >= 4) { ## 4+ = INTEGER, FLOAT, REAL, DOUBLE... some DBs (e.g., MySQL) report bogus precition for those
             l[[i]] <- numeric()
             rts[i] <- 1L
         }
@@ -425,7 +426,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
   }
   rp <- res@env$pull
   if (is.jnull(rp)) {
-    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(cts)))
+    rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(rts)))
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull helper class")
     res@env$pull <- rp
   }
@@ -433,19 +434,18 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
-        l[[i]] <- c(l[[i]], if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+        l[[i]] <- c(l[[i]], if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
-    for (i in seq.int(cols)) l[[i]] <- if (cts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    for (i in seq.int(cols)) l[[i]] <- if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
   }
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"
-  ## FIXME: we could post-process the result based on cts to convert things like DATETIME (see #19)
-  l
+  .remap.types(l, cts)
 })
 
 setMethod("dbClearResult", "JDBCResult",
@@ -472,7 +472,7 @@ setMethod("dbHasCompleted", "JDBCResult", def=function(res, ...) {
 
 setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
   cols <- .jcall(res@md, "I", "getColumnCount")
-  l <- list(field.name=character(), field.type=character(), data.type=character())
+  l <- list(field.name=character(), field.type=character(), data.type=character(), precision=integer(), type.id=integer())
   if (cols < 1) return(as.data.frame(l))
   for (i in 1:cols) {
     l$name[i] <- .jcall(res@md, "S", "getColumnLabel", i)
@@ -480,8 +480,10 @@ setMethod("dbColumnInfo", "JDBCResult", def = function(res, ...) {
     ct <- .jcall(res@md, "I", "getColumnType", i)
     l$data.type[i] <- if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) "numeric" else "character"
     l$field.name[i] <- .jcall(res@md, "S", "getColumnName", i)
+    l$type.id[i] <- ct
+    l$precision[i] <- .jcall(res@md, "I", "getPrecision", i)
   }
-  as.data.frame(l, row.names=1:cols)    
+  as.data.frame(l, row.names=1:cols)
 },
           valueClass = "data.frame")
 
