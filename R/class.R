@@ -11,6 +11,9 @@ JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
         return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv))
     }
 
+    if (is.null(driverClass) || !nzchar(driverClass)) ## NULL driver
+        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=.jnull("java.sql.Driver")))
+
   ## expand all paths in the classPath
   classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
   .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
@@ -98,21 +101,24 @@ setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
 setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) FALSE)
 
 setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ...) {
-  jc <- .jcall("java/sql/DriverManager","Ljava/sql/Connection;","getConnection", as.character(url)[1], as.character(user)[1], as.character(password)[1], check=FALSE)
-  if (is.jnull(jc) && !is.jnull(drv@jdrv)) {
-    # ok one reason for this to fail is its interaction with rJava's
-    # class loader. In that case we try to load the driver directly.
-    oex <- .jgetEx(TRUE)
-    p <- .jnew("java/util/Properties")
-    if (length(user)==1 && nzchar(user)) .jcall(p, "Ljava/lang/Object;", "setProperty", "user", as.character(user))
-    if (length(password)==1 && nzchar(password)) .jcall(p, "Ljava/lang/Object;", "setProperty", "password", as.character(password))
-    l <- list(...)
-    if (length(names(l))) for (n in names(l)) .jcall(p, "Ljava/lang/Object;", "setProperty", n, as.character(l[[n]]))
-    jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p, check=FALSE)
-  }
-  .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
-  new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
-          valueClass="JDBCConnection")
+    ## We used to try DriverManager first, but now we don't use DriverManager if there
+    ## is a driver, because DriverManager is NOT dynamic and will fail to locate drivers
+    ## that have been added after the JVM has started. Also it ignores ... parameters.
+    jc <- if (is.jnull(drv@jdrv))
+              .jcall("java/sql/DriverManager","Ljava/sql/Connection;","getConnection", as.character(url)[1], as.character(user)[1], as.character(password)[1], check=FALSE)
+          else NULL
+    if (is.null(jc) && !is.jnull(drv@jdrv)) {
+        oex <- .jgetEx(TRUE)
+        p <- .jnew("java/util/Properties")
+        if (length(user)==1 && nzchar(user)) .jcall(p, "Ljava/lang/Object;", "setProperty", "user", as.character(user))
+        if (length(password)==1 && nzchar(password)) .jcall(p, "Ljava/lang/Object;", "setProperty", "password", as.character(password))
+        l <- list(...)
+        if (length(names(l))) for (n in names(l)) .jcall(p, "Ljava/lang/Object;", "setProperty", n, as.character(l[[n]]))
+        jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p, check=FALSE)
+    }
+    .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
+    new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
+    valueClass="JDBCConnection")
 
 ### JDBCConnection
 
