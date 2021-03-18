@@ -16,9 +16,18 @@
 	representation if it is more than 15 to avoid loss of
 	precision at conversion time. (#83)
 
+    *	`NA`s are supported in updates (#64)
+
     *	add `findDrivers()` function which uses Java Service Provider
 	mechanism (in Java 1.6 and higher) to find all JDBC driver
 	classes on the class path.
+
+    *	dbConnection() used to always try DriverManager first
+	(without properties) and only on failure it would use the
+	driver. However, DriverManager is static and never updates the
+	driver list, so it is inherently unreliable. Therefore we now
+	prefer the driver if specified and DriverManager will only be
+	used if the driver is NULL. (inspired by #45)
 
 
 0.2-8	2020-03-06
