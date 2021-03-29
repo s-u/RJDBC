@@ -436,14 +436,15 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull helper class")
     res@env$pull <- rp
   }
-  if (n < 0L) { ## infinite pull - FIXME: we append instead of collect+join - should we do the latter?
+  if (n < 0L) { ## infinite pull - collect (using pairlists) & join
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
-        l[[i]] <- c(l[[i]], if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+        l[[i]] <- pairlist(l[[i]], if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
+    for (i in seq.int(cols)) l[[i]] <- unlist(l[[i]], TRUE, FALSE)
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
     for (i in seq.int(cols)) l[[i]] <- if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
