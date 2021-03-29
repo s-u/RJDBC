@@ -33,6 +33,16 @@
 	length. This should improve performance for fetching results
 	with large number of rows. (mentioned in #50)
 
+    *	Named arguments are removed from `dbSendUpdate` and query
+	calls when populating prepared statements to allow for future
+	named arguments in the methods.
+
+    *	`dbBegin()` is implemented to disable auto-commit. Analogously,
+	`dbRollback()` and `dbCommit()` perform the corresponding
+	function and then re-enable auto-commit. (see also #58)
+
+    *	`dbReadTable()` passes ... through to `dbGetQuery`
+
 
 0.2-8	2020-03-06
     *	re-use Java helper for subsequent fetch() calls on the same
