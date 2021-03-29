@@ -64,6 +64,42 @@
   metadata in their JAR files can be found. JSP was introduced in Java
   1.6 so \code{findDrivers()} only works on Java 1.6 or higher.
 
+  There are currently three different ways to specify drivers:
+  \enumerate{
+    \item \code{dbConnect(JDBC("my.Driver.Class", "driver.jar"), ...)}
+    is the most explicit way where the specified driver class is used
+    and expected to be found on the class path. This always works, but
+    the user has to know the full name of the driver class.
+    
+    \item \code{dbConnect(JDBC(, "driver.jar"), ...)} omits the driver
+    class which means JDBC will try to find the driver using the
+    \code{DriverManager}. This \emph{only} works if the JVM has been
+    loaded with the driver when initialized, so this method is
+    discouraged as it is in general very unreliable. The
+    \code{DriverManager} never updates the list of drivers, so once your
+    driver is not found, there is nothing you can do about it.
+    
+    \item \code{dbConnect(JDBC(findDrivers("driver.jar")[[1]]), ...)} uses
+    \code{findDrivers()} (see details above) to find all available
+    drivers and then passes the needed driver (in this example the first
+    one) to \code{JDBC()}. You don't need to repeat teh class path in
+    this case as it is already set by \code{findDrivers()}. It is best
+    to look at the output to see which drivers have been found, but if
+    you pass the list, the first driver is used. Note that if you print
+    the driver you will see the class name so you can also use this
+    information in the first method above instead.
+  }
+
+  If you have issues loading your driver (e.g., you get ClassNotFound
+  errors), make sure you specify \emph{all} dependencies of your driver,
+  not just the main JAR file. They \emph{all} must be listed on the
+  class path. Also make sure your JVM is supported by the driver, trying
+  to load drivers with too old JVM versions also leads to ClassNotFound
+  errors (as the loader will ignore calsses it cannot load). You can
+  always enable debugging information in the rJava class loader using
+  \code{.jclassLoader()$setDebug(1L)} for more verbose output that may
+  help in your troubleshooting.  
+
   Due to the fact that JDBC can talk to a wide variety of databases, the
   SQL dialect understood by the database is not known in
   advance. Therefore the RJDBC implementation tries to adhere to the SQL92
@@ -80,6 +116,7 @@
 
   As of RDJBC 0.2-2 JDBC-specific stored procedure calls starting with
   \code{\{call} and \code{\{?= call} are supported in the statements.
+
 }
 \seealso{
   \code{\link[DBI]{dbConnect}}
