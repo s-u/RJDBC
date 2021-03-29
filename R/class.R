@@ -5,25 +5,27 @@ setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character",
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
     ## we allow the user to supply the class itself in case they got
     ## it through some other means (like findDrivers())
-    if (is(driverClass, "jobjRef")) {
+    if (is(driverClass, "jobjRef") || (is.list(driverClass) && length(driverClass) > 0 && is(driverClass[[1L]], "jobjRef"))) {
+        if (is.list(driverClass)) driverClass <- driverClass[[1L]]
         if (!isTRUE(.jcall(.jfindClass("java.sql.Driver"), "Z", "isInstance", .jcast(driverClass, "java.lang.Object"))))
             stop("Provided class object is not a subclass of java.sql.Driver")
-        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv))
+        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=driverClass))
     }
+
+    ## expand all paths in the classPath
+    classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
+    .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
+    .jaddClassPath(system.file("java", "RJDBC.jar", package="RJDBC"))
 
     if (is.null(driverClass) || !nzchar(driverClass)) ## NULL driver
         return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=.jnull("java.sql.Driver")))
 
-  ## expand all paths in the classPath
-  classPath <- path.expand(unlist(strsplit(classPath, .Platform$path.sep)))
-  .jinit(classPath) ## this is benign in that it's equivalent to .jaddClassPath if a JVM is running
-  .jaddClassPath(system.file("java", "RJDBC.jar", package="RJDBC"))
-  if (nchar(driverClass) && is.jnull(.jfindClass(as.character(driverClass)[1])))
-    stop("Cannot find JDBC driver class ",driverClass)
-  jdrv <- .jnew(driverClass, check=FALSE)
-  .jcheck(TRUE)
-  if (is.jnull(jdrv)) jdrv <- .jnull()
-  new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
+    if (nchar(driverClass) && is.jnull(.jfindClass(as.character(driverClass)[1])))
+        stop("Cannot find JDBC driver class ",driverClass)
+    jdrv <- .jnew(driverClass, check=FALSE)
+    .jcheck(TRUE)
+    if (is.jnull(jdrv)) jdrv <- .jnull()
+    new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=jdrv)
 }
 
 findDrivers <- function(classPath="", service="java.sql.Driver", loader=NULL) {
