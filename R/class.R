@@ -132,6 +132,12 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 ## populate query parameters - non-vectorised version only
 ## and l is guaranteed to have length > 0
 .fillStatementParameters <- function(s, l) {
+    ## remove named arguments are they are assumed to be
+    ## additional method arguments and not part of the query
+    if (!is.null(names(l))) {
+        l <- l[names(l) == ""]
+        if (length(l) < 1) return(NULL)
+    }
     for (i in 1:length(l)) {
         v <- l[[i]]
         if (length(v) > 1)

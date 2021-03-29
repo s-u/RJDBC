@@ -93,7 +93,8 @@ dbGetFields (conn, ...)
   maximum batch size supported by the DBMS.
 
   \code{dbSendQuery} and \code{dbSendUpdate} accept both \code{...}
-  (populated frist) as well as named \code{list=} (populated as second).
+  (populated frist) as well as \code{list=} (populated as second).
+  Only unnamed arguments are used (in both cases).
 
   \code{dbGetQuery} is a shorthand for \code{sendQuery} +
   \code{fetch}. Parameters \code{n=-1}, \code{block=2048L} and
@@ -102,7 +103,7 @@ dbGetFields (conn, ...)
 
   \code{dbListTables} and \code{dbGetTables} have the arguments
   \code{(conn, pattern="\%", schema=NULL)}. \code{dbExistsTable} is just
-  a wrapper to \code{dbGetTables}.
+  a wrapper for \code{dbGetTables}.
 
   \code{dbWriteTable} is defined as
   \code{(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, ..., max.batch=10000L)}
