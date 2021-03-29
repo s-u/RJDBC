@@ -129,19 +129,23 @@ setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identif
 setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
           {.jcall(conn@jc, "V", "close"); TRUE})
 
+## populate query parameters - non-vectorised version only
+## and l is guaranteed to have length > 0
 .fillStatementParameters <- function(s, l) {
-  for (i in 1:length(l)) {
-    v <- l[[i]]
-    if (is.na(v)) { # map NAs to NULLs (courtesy of Axel Klenk)
-      sqlType <- if (is.integer(v)) 4 else if (is.numeric(v)) 8 else 12
-      .jcall(s, "V", "setNull", i, as.integer(sqlType))
-    } else if (is.integer(v))
-      .jcall(s, "V", "setInt", i, v[1])
-    else if (is.numeric(v))
-      .jcall(s, "V", "setDouble", i, as.double(v)[1])
-    else
-      .jcall(s, "V", "setString", i, as.character(v)[1])
-  }
+    for (i in 1:length(l)) {
+        v <- l[[i]]
+        if (length(v) > 1)
+            stop("Vectorized parameters are only supported in batch-updates via dbSendUpdate(), not in queries")
+        if (is.null(v) || is.na(v)) { # map NAs to NULLs (courtesy of Axel Klenk)
+            sqlType <- if (is.integer(v)) 4L else if (is.numeric(v)) 8L else 12L
+            .jcall(s, "V", "setNull", i, sqlType)
+        } else if (is.integer(v))
+            .jcall(s, "V", "setInt", i, v)
+        else if (is.numeric(v))
+            .jcall(s, "V", "setDouble", i, as.double(v))
+        else
+            .jcall(s, "V", "setString", i, as.character(v))
+    }
 }
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
