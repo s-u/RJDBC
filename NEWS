@@ -29,6 +29,10 @@
 	prefer the driver if specified and DriverManager will only be
 	used if the driver is NULL. (inspired by #45)
 
+    *	Use collect + join when `fetch()`ing results of unknown
+	length. This should improve performance for fetching results
+	with large number of rows. (mentioned in #50)
+
 
 0.2-8	2020-03-06
     *	re-use Java helper for subsequent fetch() calls on the same
