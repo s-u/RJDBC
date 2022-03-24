@@ -59,6 +59,9 @@ dbHasCompleted(r)
 ## prepared send query
 fetch(r <- dbSendQuery(c, "SELECT Species as Kind, count(Species) as Count FROM iris WHERE `Sepal.Width` > ? GROUP BY Species", 3), 1e3, block=1e3)
 dbColumnInfo(r)
+dbIsValid(r)
+dbClearResult(r)
+dbIsValid(r)
 ## append
 i2 <- iris
 i2$Species <- paste0("New.", as.character(i2$Species))
@@ -100,6 +103,8 @@ dbSendUpdate(c, "DROP PROCEDURE bar")
 dbSendUpdate(c, "CREATE PROCEDURE foobar(IN x INT) BEGIN SELECT * FROM foo WHERE beta >= x; END")
 fetch(dbSendQuery(c, "{call foobar(222)}"), -1)
 dbSendUpdate(c, "DROP PROCEDURE foobar")
+## isValid
+dbIsValid(c)
 ## remove
 (dbExistsTable(c, "iris"))
 (dbRemoveTable(c, "iris"))
@@ -107,5 +112,6 @@ dbSendUpdate(c, "DROP PROCEDURE foobar")
 (dbRemoveTable(c, "iris", silent=TRUE))
 tryCatch(fetch(r <- dbSendQuery(c, "SELECT Species as Kind, count(Species) as Count FROM iris WHERE `Sepal.Width` > ? GROUP BY Species", 3), 1e3, block=1e3), error=function(e) str(e))
 dbDisconnect(c)
+dbIsValid(c)
 ' | R --vanilla --quiet || echo "*** TEST FAILED ***"
 
