@@ -94,7 +94,9 @@ dbGetFields (conn, ...)
 
   \code{dbSendQuery} and \code{dbSendUpdate} accept both \code{...}
   (populated frist) as well as \code{list=} (populated as second).
-  Only unnamed arguments are used (in both cases).
+  Only unnamed arguments are used from \code{...} (assuming that those
+  are function arguments and no data) while all elements are used from
+  \code{list=}.
 
   \code{dbGetQuery} is a shorthand for \code{sendQuery} +
   \code{fetch}. Parameters \code{n=-1}, \code{block=2048L} and

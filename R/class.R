@@ -130,14 +130,15 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
           {.jcall(conn@jc, "V", "close"); TRUE})
 
 ## populate query parameters - non-vectorised version only
-## and l is guaranteed to have length > 0
-.fillStatementParameters <- function(s, l) {
-    ## remove named arguments are they are assumed to be
+## ldots are typically list(...) and only unnamed args will
+## be used, while all elements from list= will be used
+.fillStatementParameters <- function(s, ldots=NULL, list=NULL) {
+    ## remove named arguments from ldots as they are assumed to be
     ## additional method arguments and not part of the query
-    if (!is.null(names(l))) {
-        l <- l[names(l) == ""]
-        if (length(l) < 1) return(NULL)
-    }
+    if (length(ldots) && !is.null(names(ldots)))
+        ldots <- ldots[names(ldots) == ""]
+    l <- c(ldots, list)
+    if (length(l) < 1) return (NULL)
     for (i in 1:length(l)) {
         v <- l[[i]]
         if (length(v) > 1)
@@ -160,15 +161,13 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
-    if (length(list(...))) .fillStatementParameters(s, list(...))
-    if (!is.null(list)) .fillStatementParameters(s, list)
+    .fillStatementParameters(s, list(...), list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set for ", statement=statement)
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC prepared statement", statement=statement)
-    if (length(list(...))) .fillStatementParameters(s, list(...))
-    if (!is.null(list)) .fillStatementParameters(s, list)
+    .fillStatementParameters(s, list(...), list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
   } else { ## otherwise use a simple statement some DBs fail with the above)
@@ -191,15 +190,18 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
     on.exit(.jcall(s, "V", "close")) # same as ORA issue below and #4
-    if (length(list(...))) .fillStatementParameters(s, list(...))
-    if (!is.null(list)) .fillStatementParameters(s, list)
+    .fillStatementParameters(s, list(...), list)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
   } else if (length(list(...)) || length(list)) { ## use prepared statements if there are additional arguments
     s <- .jcall(conn@jc, "Ljava/sql/PreparedStatement;", "prepareStatement", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to create JDBC prepared statement", statement=statement)
     on.exit(.jcall(s, "V", "close")) # this will fix issue #4 and http://stackoverflow.com/q/21603660/2161065
-    l <- c(list(...), list)
+    l <- list(...)
+    ## strip named arguments from ... but not list
+    if (!is.null(names(l))) l <- l[names(l) == ""]
+    l <- c(l, list)
+    names(l) <- NULL
     if (length(l)) {
       if (length(tl <- table(sapply(l, length))) > 1) stop("all parameters must have the same length")
       if (as.integer(names(tl)) > 1) { ## batch insert
