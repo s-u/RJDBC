@@ -108,13 +108,18 @@ dbGetFields (conn, ...)
   a wrapper for \code{dbGetTables}.
 
   \code{dbWriteTable} is defined as
-  \code{(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, ..., max.batch=10000L)}
+  \code{(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE,
+    field.types=NULL, ..., max.batch=10000L)}
   and is just a short-hand for the corresponding \code{dbSendUpdate()}
   statements. Since it is only a convenience wrapper, it is strongly
   recommended to use \code{dbSendUpdate()} in any real use-cases
   as you have far more control over the shape and properties of the
   table if you issue the \code{CREATE TABLE} statement according to
-  your DBMS' capabilities.
+  your DBMS' capabilities. It is also possible to create the table
+  with \code{dbSendUpdate} and then use
+  \code{dbWriteTable(..., append=TRUE)} to store the data which simply
+  constructs \code{INSERT INTO} batch-update statement run with
+  \code{dbSendQuery}.
 
   \code{dbReadTable} is just a shorthand for
   \code{dbGetQuery(c, "SELECT * from <table>")}
