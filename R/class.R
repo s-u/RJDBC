@@ -2,6 +2,16 @@
 
 setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
 
+##=== JDBCResult
+## jr - result set, md - metadata, stat - statement
+## Since the life of a result set depends on the life of the statement, we have to explicitly
+## save the later as well (and close both at the end)
+
+setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
+
+setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
+
+
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
     ## we allow the user to supply the class itself in case they got
     ## it through some other means (like findDrivers())
@@ -124,10 +134,17 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
 
 ### JDBCConnection
 
-setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
-
 setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
           {.jcall(conn@jc, "V", "close"); TRUE})
+
+## new DBI API?
+if (!is.null(asNamespace("DBI")$dbIsValid)) {
+    setMethod("dbIsValid", "JDBCConnection", def=function(dbObj, timeout=0, ...)
+        (!is.jnull(dbObj@jc)) && .jcall(dbObj@jc, "Z", "isValid", as.integer(timeout)[1]))
+
+    setMethod("dbIsValid", "JDBCResult", def=function(dbObj, ...)
+        !(is.jnull(dbObj@jr) || .jcall(dbObj@jr, "Z", "isClosed")))
+}
 
 ## populate query parameters - non-vectorised version only
 ## ldots are typically list(...) and only unnamed args will
@@ -411,13 +428,6 @@ setMethod("dbBegin", "JDBCConnection", def=function(conn, force=FALSE, ...) {
     .verify.ex("disabling auto-commit failed")
     invisible(TRUE)
 })
-
-##=== JDBCResult
-## jr - result set, md - metadata, stat - statement
-## Since the life of a result set depends on the life of the statement, we have to explicitly
-## save the later as well (and close both at the end)
-
-setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
 
 ## NOTE: if you modify any defaults or add arguments, also check dbGetQuery() which attempts to pass those through!
 setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, use.label=TRUE, ...) {
