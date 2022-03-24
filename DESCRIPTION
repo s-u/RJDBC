@@ -1,5 +1,5 @@
 Package: RJDBC
-Version: 0.2-9
+Version: 0.2-10
 Title: Provides Access to Databases Through the JDBC Interface
 Author: Simon Urbanek <Simon.Urbanek@r-project.org>
 Maintainer: Simon Urbanek <Simon.Urbanek@r-project.org>
