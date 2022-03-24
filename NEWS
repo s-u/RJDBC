@@ -1,3 +1,7 @@
+0.2-11	(under development)
+    *	add field.types= argument to dbWriteTable() (#87)
+
+
 0.2-10	2022-03-24
     *	dbSendQuery() and dbSendUpdate() now remove named arguments
 	only from `...` but not from `list=` to enable single-row
