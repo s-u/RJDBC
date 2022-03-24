@@ -1,3 +1,21 @@
+0.2-10	2022-03-24
+    *	dbSendQuery() and dbSendUpdate() now remove named arguments
+	only from `...` but not from `list=` to enable single-row
+	updates from data frames along the lines of `list=iris[1,]`.
+
+    *	dbWriteTable() failed for data frames with exactly one row,
+	because it used the form shown above for updates which will
+	fail with `JDBC ERROR: Parameter at position 1 is not set`
+	since all elements are named and thus none were set.
+
+    *	merging arguments from `...` and `list=` was not always done
+	correctly, in some cases `list=` would overwrite `...`
+	arguments.
+
+	(Note: all of the above are 0.2-9 regressions related to the
+	changes in handling of prepared statement arguments)
+
+
 0.2-9	2022-03-16
     *	All Java-related errors are signalled by throwing error
 	conditions. If a Java error occurred, the condition will be of
