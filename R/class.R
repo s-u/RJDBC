@@ -140,7 +140,11 @@ setMethod("dbDisconnect", "JDBCConnection", def=function(conn, ...)
 ## new DBI API?
 if (!is.null(asNamespace("DBI")$dbIsValid)) {
     setMethod("dbIsValid", "JDBCConnection", def=function(dbObj, timeout=0, ...)
-        (!is.jnull(dbObj@jc)) && .jcall(dbObj@jc, "Z", "isValid", as.integer(timeout)[1]))
+    (!is.jnull(dbObj@jc)) &&
+    ## SAS JDBC driver is broken and doesn't implement isValid() even though it is
+    ## part of the JDBC 2.0 standard (JDK 1.6, 2006), so fall back to isClosed() on error
+     tryCatch(.jcall(dbObj@jc, "Z", "isValid", as.integer(timeout)[1]),
+              error=function(e) !.jcall(dbObj@jc, "Z", "isClosed")))
 
     setMethod("dbIsValid", "JDBCResult", def=function(dbObj, ...)
         !(is.jnull(dbObj@jr) || .jcall(dbObj@jr, "Z", "isClosed")))
