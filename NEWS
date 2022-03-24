@@ -15,6 +15,8 @@
 	(Note: all of the above are 0.2-9 regressions related to the
 	changes in handling of prepared statement arguments)
 
+    *	add dbIsValid() methods for JDBCConnection and JDBCResult (#89)
+
 
 0.2-9	2022-03-16
     *	All Java-related errors are signalled by throwing error
