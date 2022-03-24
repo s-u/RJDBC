@@ -363,7 +363,7 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, ..., max.batch=10000L) {
+setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, field.types=NULL, ..., max.batch=10000L) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
   append <- isTRUE(as.logical(append))
@@ -376,22 +376,23 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
   } else {
     if (!is.data.frame(value)) value <- as.data.frame(value)
   }
-  fts <- sapply(value, dbDataType, dbObj=conn)
   if (isTRUE(as.logical(force))) {
     if (overwrite) dbRemoveTable(conn, name, silent=TRUE)
   } else if (dbExistsTable(conn, name)) {
     if (overwrite) dbRemoveTable(conn, name)
     else if (!append) stop("Table `",name,"' already exists")
   } else append <- FALSE ## if the table doesn't exist, append has no meaning
-  fdef <- paste(.sql.qescape(names(value), TRUE, conn@identifier.quote),fts,collapse=',')
   qname <- .sql.qescape(name, TRUE, conn@identifier.quote)
   if (ac) {
     .jcall(conn@jc, "V", "setAutoCommit", FALSE)
     on.exit(.jcall(conn@jc, "V", "setAutoCommit", ac))
   }
   if (!append) {
-    ct <- paste("CREATE TABLE ",qname," (",fdef,")",sep= '')
-    dbSendUpdate(conn, ct)
+      fts <- if (is.null(field.types)) sapply(value, dbDataType, dbObj=conn) else field.types
+      if (length(fts) != length(names(value))) stop("field.types must have the same length as the number of columns")
+      fdef <- paste(.sql.qescape(names(value), TRUE, conn@identifier.quote), fts, collapse=',')
+      ct <- paste("CREATE TABLE ",qname," (",fdef,")",sep= '')
+      dbSendUpdate(conn, ct)
   }
   if (length(value[[1]])) {
     inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
