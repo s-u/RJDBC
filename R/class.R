@@ -11,6 +11,9 @@ setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", s
 
 setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
 
+is_generic_definition_needed <- function(x) {
+     return(is.null(getGeneric(x)) || attr(getGeneric(x), "package") == "RJDBC")
+}
 
 JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
     ## we allow the user to supply the class itself in case they got
@@ -178,7 +181,7 @@ if (!is.null(asNamespace("DBI")$dbIsValid)) {
 
 setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
@@ -196,17 +199,17 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
     .verify.JDBC.result(s, "Unable to create simple JDBC statement", statement=statement)
     r <- .jcall(s, "Ljava/sql/ResultSet;", "executeQuery", as.character(statement)[1], check=FALSE)
     .verify.JDBC.result(r, "Unable to retrieve JDBC result set", statement=statement)
-  } 
+  }
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data in dbSendQuery", statement=statement)
   new("JDBCResult", jr=r, md=md, stat=s, env=new.env(parent=emptyenv()))
 })
 
-if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
+if (is_generic_definition_needed("dbSendUpdate")) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
 
 setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., list=NULL, max.batch=10000L) {
   statement <- as.character(statement)[1L]
-  ## if the statement starts with {call or {?= call then we use CallableStatement 
+  ## if the statement starts with {call or {?= call then we use CallableStatement
   if (isTRUE(as.logical(grepl("^\\{(call|\\?= *call)", statement)))) {
     s <- .jcall(conn@jc, "Ljava/sql/CallableStatement;", "prepareCall", statement, check=FALSE)
     .verify.JDBC.result(s, "Unable to execute JDBC callable statement", statement=statement)
@@ -275,12 +278,15 @@ setMethod("dbListResults", "JDBCConnection",
   fetch(res, -1)
 }
 
-setMethod("dbListTables", "JDBCConnection", def=function(conn, pattern="%", schema=NULL, ...) {
+setMethod("dbListTables", "JDBCConnection", def=function(conn, pattern="%", schema=NULL, catalog = NULL, ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
-  schema <- if (is.null(schema)) .jnull("java/lang/String") else as.character(schema)[1L]
-  r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", .jnull("java/lang/String"),
-              schema, pattern, .jnull("[Ljava/lang/String;"), check=FALSE)
+  catalog         <- if (is.null(catalog)) .jnull("java/lang/String") else as.character(catalog)[1L]
+  schema_pattern  <- if (is.null(schema))  .jnull("java/lang/String") else as.character(schema)[1L]
+  table_pattern   <- pattern
+  types           <- .jnull("[Ljava/lang/String;")
+  r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", catalog,
+              schema_pattern, table_pattern, types, check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC tables list")
   on.exit(.jcall(r, "V", "close"))
   ts <- character()
@@ -289,25 +295,37 @@ setMethod("dbListTables", "JDBCConnection", def=function(conn, pattern="%", sche
   ts
 })
 
-if (is.null(getGeneric("dbGetTables"))) setGeneric("dbGetTables", function(conn, ...) standardGeneric("dbGetTables"))
+if (is_generic_definition_needed("dbGetTables")) setGeneric("dbGetTables", function(conn, ...) standardGeneric("dbGetTables"))
 
-setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", schema=NULL, ...) {
+setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", schema=NULL, catalog = NULL, ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
-  schema <- if (is.null(schema)) .jnull("java/lang/String") else as.character(schema)[1L]
-  r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", .jnull("java/lang/String"),
-              schema, pattern, .jnull("[Ljava/lang/String;"), check=FALSE)
+  catalog         <- if (is.null(catalog)) .jnull("java/lang/String") else as.character(catalog)[1L]
+  schema_pattern  <- if (is.null(schema))  .jnull("java/lang/String") else as.character(schema)[1L]
+  table_pattern   <- pattern
+  types           <- .jnull("[Ljava/lang/String;")
+  r <- .jcall(md, "Ljava/sql/ResultSet;", "getTables", catalog,
+              schema_pattern, table_pattern, types, check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC tables list")
   on.exit(.jcall(r, "V", "close"))
   .fetch.result(r)
 })
 
-setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, schema=NULL, ...) length(dbListTables(conn, name, schema)) > 0)
+setMethod("dbExistsTable", signature(conn="JDBCConnection", name="Id"), def=function(conn, name, schema=NULL, ...) {
+     dbExistsTable(conn, name = extract_table(name), schema = extract_schema(name), catalog = extract_catalog(name), ...)
+})
+setMethod("dbExistsTable", signature(conn="JDBCConnection", name="character"), def=function(conn, name, schema=NULL, catalog = NULL, ...) length(dbListTables(conn = conn, pattern = name, schema = schema, catalog = catalog)) > 0)
 
-setMethod("dbRemoveTable", "JDBCConnection", def=function(conn, name, silent=FALSE, ...)
-    if (silent) tryCatch(dbRemoveTable(conn, name, silent=FALSE), error=function(e) FALSE) else dbSendUpdate(conn, paste("DROP TABLE", name)))
+setMethod("dbRemoveTable", signature(conn="JDBCConnection", name="Id"), def=function(conn, name, silent=FALSE, ...)
+     if (silent) tryCatch(dbRemoveTable(conn, name, silent=FALSE), error=function(e) FALSE) else dbSendUpdate(conn, paste("DROP TABLE", quote_identifier(conn = conn, x = name))))
 
-setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%", full=FALSE, ...) {
+setMethod("dbRemoveTable", signature(conn="JDBCConnection", name="character"), def=function(conn, name, silent=FALSE, ...)
+    if (silent) tryCatch(dbRemoveTable(conn, name, silent=FALSE), error=function(e) FALSE) else dbSendUpdate(conn, paste("DROP TABLE", quote_identifier(conn = conn, x = name))))
+
+setMethod("dbListFields", signature(conn="JDBCConnection", name="Id"), def=function(conn, name, pattern="%", full=FALSE, ...) {
+     dbListFields(conn, name = extract_table(name), pattern = pattern, full = full, schema = extract_schema(name), catalog = extract_catalog(name), ...)
+})
+setMethod("dbListFields", signature(conn="JDBCConnection", name="character"), def=function(conn, name, pattern="%", full=FALSE, ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC database metadata")
   r <- .jcall(md, "Ljava/sql/ResultSet;", "getColumns", .jnull("java/lang/String"),
@@ -321,7 +339,7 @@ setMethod("dbListFields", "JDBCConnection", def=function(conn, name, pattern="%"
   ts
 })
 
-if (is.null(getGeneric("dbGetFields"))) setGeneric("dbGetFields", function(conn, ...) standardGeneric("dbGetFields"))
+if (is_generic_definition_needed("dbGetFields")) setGeneric("dbGetFields", function(conn, ...) standardGeneric("dbGetFields"))
 
 setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%", ...) {
   md <- .jcall(conn@jc, "Ljava/sql/DatabaseMetaData;", "getMetaData", check=FALSE)
@@ -337,11 +355,14 @@ setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%",
 ## name=character. So we have to make sure it doesn't get picked by making sure
 ## we also set a character method even if we don't actually require it.
 setMethod("dbReadTable", signature(conn="JDBCConnection", name="character"), def=function(conn, name, ...)
-    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(name,TRUE,conn@identifier.quote)), ...))
+    dbGetQuery(conn, paste("SELECT * FROM", quote_identifier(conn, name)), ...))
+
+setMethod("dbReadTable", signature(conn="JDBCConnection", name="Id"), def=function(conn, name, ...)
+     dbGetQuery(conn, paste("SELECT * FROM", quote_identifier(conn, name)), ...))
 
 ## cover all the other cases where the user likely intended a coersion
 setMethod("dbReadTable", signature(conn="JDBCConnection", name="ANY"), def=function(conn, name, ...)
-    dbGetQuery(conn, paste("SELECT * FROM",.sql.qescape(as.character(name),TRUE,conn@identifier.quote)), ...))
+    dbGetQuery(conn, paste("SELECT * FROM", quote_identifier(conn, name)), ...))
 
 
 setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
@@ -367,10 +388,15 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
   paste(quote,s,quote,sep='')
 }
 
-setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, field.types=NULL, ..., max.batch=10000L) {
+setMethod("dbWriteTable", signature(conn="JDBCConnection", name="Id"), def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, field.types=NULL, ..., max.batch=10000L) {
+     dbWriteTable(conn, name = extract_table(name), schema = extract_schema(name), catalog = extract_catalog(name), value = value, overwrite=overwrite, append=append, force=force, field.types=field.types, ..., max.batch=max.batch)
+})
+
+setMethod("dbWriteTable", signature(conn="JDBCConnection", name="character"), def=function(conn, name, value, overwrite=FALSE, append=FALSE, force=FALSE, field.types=NULL, ..., max.batch=10000L, schema = NULL, catalog = NULL) {
   ac <- .jcall(conn@jc, "Z", "getAutoCommit")
   overwrite <- isTRUE(as.logical(overwrite))
   append <- isTRUE(as.logical(append))
+  table_id <- create_id(catalog = catalog, schema = schema, table = name)
   if (overwrite && append) stop("overwrite=TRUE and append=TRUE are mutually exclusive")
   if (is.vector(value) && !is.list(value)) value <- data.frame(x=value)
   if (length(value)<1) stop("value must have at least one column")
@@ -381,12 +407,12 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
     if (!is.data.frame(value)) value <- as.data.frame(value)
   }
   if (isTRUE(as.logical(force))) {
-    if (overwrite) dbRemoveTable(conn, name, silent=TRUE)
-  } else if (dbExistsTable(conn, name)) {
-    if (overwrite) dbRemoveTable(conn, name)
+    if (overwrite) dbRemoveTable(conn, name = table_id, silent=TRUE)
+  } else if (dbExistsTable(conn, name = name, schema = schema)) {
+    if (overwrite) dbRemoveTable(conn, name = table_id)
     else if (!append) stop("Table `",name,"' already exists")
   } else append <- FALSE ## if the table doesn't exist, append has no meaning
-  qname <- .sql.qescape(name, TRUE, conn@identifier.quote)
+  qname <- quote_identifier(conn, table_id)
   if (ac) {
     .jcall(conn@jc, "V", "setAutoCommit", FALSE)
     on.exit(.jcall(conn@jc, "V", "setAutoCommit", ac))
@@ -399,7 +425,9 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
       dbSendUpdate(conn, ct)
   }
   if (length(value[[1]])) {
-    inss <- paste("INSERT INTO ",qname," VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
+       #Ensure the inserts go into the same slots as the values, otherwise with col name list, it inserts values randomly into table structure
+       insert_cols <- paste(.sql.qescape(names(value), TRUE, conn@identifier.quote), collapse=',')
+       inss <- paste("INSERT INTO ",qname," (", insert_cols, ") VALUES(", paste(rep("?",length(value)),collapse=','),")",sep='')
     ## make sure everything is a character other than real/int
     list <- lapply(value, function(o) if (!is.numeric(o)) as.character(o) else o)
     dbSendUpdate(conn, inss, list=list)
