@@ -100,8 +100,8 @@ public class JDBCResultPull {
 	    peek = false;
 	    for (int i = 0; i < cols; i++)
 		if (cTypes[i] == CT_NUMERIC) {
-		    double val = rs.getDouble(i + 1);
-		    if (rs.wasNull()) val = NA_double;
+            Object o = rs.getObject(i + 1);
+            double val = (rs.wasNull() || o == null || !(o instanceof Number)) ? NA_double : ((Number) o).doubleValue();
 		    ((double[])data[i])[count] = val; 
 		} else
 		    ((String[])data[i])[count] = rs.getString(i + 1); 
