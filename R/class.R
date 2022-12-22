@@ -138,7 +138,7 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
         for (opt in names(dbOptions))
             opts[[opt]] <- dbOptions[[opt]]
     if (is.logical(opts$autocommit) && length(opts$autocommit) == 1L) {
-        .jcall(conn@jc, "V", "setAutoCommit", opts$autocommit)
+        .jcall(jc, "V", "setAutoCommit", opts$autocommit)
         .verify.ex("Unable to set autocommit to ", opts$autocommit)
     }
     ac <- .jcall(jc, "Z", "getAutoCommit")
