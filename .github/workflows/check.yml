@@ -27,7 +27,7 @@ jobs:
       - name: Install R
         uses: s-u/R-actions/install@v1
         with:
-          r-version: ${{ matrix.r-version }}
+          r-version: ${{ matrix.r }}
           tools: base
 
       - uses: actions/setup-java@v1
