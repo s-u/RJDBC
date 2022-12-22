@@ -38,7 +38,8 @@ jobs:
         run: "sh mkdist"
 
       - name: Info
-        run: "bash -c 'java -version && which java && echo $PATH && echo $JAVA_HOME'"
+        run: java -version && which java && echo $PATH && echo $JAVA_HOME
+        shell: bash
 
       - name: Setup R Java support
         if: runner.os != 'Windows'
@@ -46,5 +47,6 @@ jobs:
 
       - name: Install rJava
         run: Rscript -e 'install.packages(c("DBI", "rJava"),,"https://cloud.R-project.org")'
+        shell: bash
 
       - uses: s-u/R-actions/pkg-check@v1
