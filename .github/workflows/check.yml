@@ -17,16 +17,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ 'windows-latest', 'macOS-10.15', 'ubuntu-20.04' ]
+        os: [ 'windows-2022', 'macOS-10.15', 'ubuntu-20.04' ]
         r:  [ 'release' ]
         java: [ 8, 11 ]
 
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
 
-      - uses: r-lib/actions/setup-r@master
+      - name: Install R
+        uses: s-u/R-actions/install@v1
         with:
-          r-version: ${{ matrix.r }}
+          r-version: ${{ matrix.r-version }}
+          tools: base
 
       - uses: actions/setup-java@v1
         with:
@@ -45,12 +47,4 @@ jobs:
       - name: Install rJava
         run: "Rscript -e 'install.packages(as.character(c(quote(DBI), quote(rJava))))'"
 
-      - name: R CMD check
-        run: "bash -c 'R CMD check --no-multiarch --no-manual ../RJDBC_*.tar.gz'"
-
-      - name: Upload check results
-        if: failure()
-        uses: actions/upload-artifact@master
-        with:
-          name: ${{ runner.os }}-r${{ matrix.r }}-j${{ matrix.java }}-results
-          path: RJDBC.Rcheck
+      - uses: s-u/R-actions/pkg-check@v1
