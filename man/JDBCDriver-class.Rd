@@ -16,6 +16,8 @@ Objects can be created by calls to \code{\link{JDBC}} or \code{\link[DBI]{dbDriv
       driver if the driver can be instantiated by a default
       constructor. This object is only used as a fall-back when the
       driver manager fails to find a driver.}
+    \item{\code{options}:}{list of options saved with this driver -
+      see \code{\link{dbOption}}.}
   }
 }
 \section{Extends}{

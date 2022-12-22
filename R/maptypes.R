@@ -1,6 +1,8 @@
 ## default type maps
 .type.map <- as.environment(list(
-    DATE = function(x) as.Date(x, "%Y-%m-%d"),
+    DATE = function(x) if (is.character(x)) as.Date(x, "%Y-%m-%d") else if (inherits(x, "POSIXct") && !is.null(tz <- attr(x, "tzone", TRUE))) as.Date(x, tz) else as.Date(x),
+    ## they are all obsolete since we parse them in Java using Timestamp
+    ## but for people that set posix.ct=FALSE
     DATETIME = function(x) as.POSIXct(x, format="%Y-%m-%d %H:%M:%OS"),
     TIMESTAMP = function(x) as.POSIXct(x, format="%Y-%m-%d %H:%M:%OS")
 ))

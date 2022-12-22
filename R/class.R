@@ -1,25 +1,29 @@
 ##=== JDBCDriver
 
-setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef"))
+setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef", options="list"))
+
+setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character", options="list"))
 
 ##=== JDBCResult
 ## jr - result set, md - metadata, stat - statement
 ## Since the life of a result set depends on the life of the statement, we have to explicitly
 ## save the later as well (and close both at the end)
+setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment", conn="JDBCConnection"))
 
-setClass("JDBCResult", representation("DBIResult", jr="jobjRef", md="jobjRef", stat="jobjRef", env="environment"))
+setGeneric("dbOption", function(dbo, name, default) default)
+setMethod("dbOption", "JDBCDriver", function(dbo, name, default) if (name %in% names(dbo@options)) dbo@options[[name]] else default)
+setMethod("dbOption", "JDBCConnection", function(dbo, name, default) if (name %in% names(dbo@options)) dbo@options[[name]] else default)
+setMethod("dbOption", "JDBCResult", function(dbo, name, default) dbOption(dbo@conn, name, default))
 
-setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character"))
-
-
-JDBC <- function(driverClass='', classPath='', identifier.quote=NA) {
+JDBC <- function(driverClass='', classPath='', identifier.quote=NA, ...) {
+    opts <- list(...)
     ## we allow the user to supply the class itself in case they got
     ## it through some other means (like findDrivers())
     if (is(driverClass, "jobjRef") || (is.list(driverClass) && length(driverClass) > 0 && is(driverClass[[1L]], "jobjRef"))) {
         if (is.list(driverClass)) driverClass <- driverClass[[1L]]
         if (!isTRUE(.jcall(.jfindClass("java.sql.Driver"), "Z", "isInstance", .jcast(driverClass, "java.lang.Object"))))
             stop("Provided class object is not a subclass of java.sql.Driver")
-        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=driverClass))
+        return(new("JDBCDriver", identifier.quote=as.character(identifier.quote), jdrv=driverClass, options=opts))
     }
 
     ## expand all paths in the classPath
@@ -112,7 +116,7 @@ setMethod("dbGetInfo", "JDBCDriver", def=function(dbObj, ...)
 
 setMethod("dbUnloadDriver", "JDBCDriver", def=function(drv, ...) FALSE)
 
-setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ...) {
+setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password='', ..., dbOptions) {
     ## We used to try DriverManager first, but now we don't use DriverManager if there
     ## is a driver, because DriverManager is NOT dynamic and will fail to locate drivers
     ## that have been added after the JVM has started. Also it ignores ... parameters.
@@ -129,7 +133,11 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
         jc <- .jcall(drv@jdrv, "Ljava/sql/Connection;", "connect", as.character(url)[1], p, check=FALSE)
     }
     .verify.JDBC.result(jc, "Unable to connect JDBC to ",url)
-    new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote)},
+    opts <- drv@options
+    if (!missing(dbOptions) && is.list(dbOptions))
+        for (opt in names(dbOptions))
+            opts[[opt]] <- dbOptions[[opt]]
+    new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote, options=opts)},
     valueClass="JDBCConnection")
 
 ### JDBCConnection
@@ -199,7 +207,7 @@ setMethod("dbSendQuery", signature(conn="JDBCConnection", statement="character")
   } 
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data in dbSendQuery", statement=statement)
-  new("JDBCResult", jr=r, md=md, stat=s, env=new.env(parent=emptyenv()))
+  new("JDBCResult", jr=r, md=md, stat=s, env=new.env(parent=emptyenv()), conn=conn)
 })
 
 if (is.null(getGeneric("dbSendUpdate"))) setGeneric("dbSendUpdate", function(conn, statement, ...) standardGeneric("dbSendUpdate"))
@@ -250,11 +258,15 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
   .verify.ex("execute JDBC update query failed in dbSendUpdate", statement=statement)
 })
 
-setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),  def=function(conn, statement, ..., n=-1, block=2048L, use.label=TRUE) {
+setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),
+    def=function(conn, statement, ..., n=-1, block=dbOption(conn, "fetch.block", 2048L), use.label=TRUE,
+                 lossy=dbOption(conn, "fetch.lossy", FALSE), tz=dbOption(conn, "fetch.tz", ""),
+                 posix.ts=dbOption(conn, "fetch.posix.ts", TRUE)
+                 ) {
   r <- dbSendQuery(conn, statement, ...)
   ## Teradata needs this - closing the statement also closes the result set according to Java docs
   on.exit(.jcall(r@stat, "V", "close"))
-  fetch(r, n, block=block, use.label=use.label)
+  fetch(r, n, block=block, use.label=use.label, lossy=lossy, tz=tz, posix.ts=posix.ts)
 })
 
 setMethod("dbGetException", "JDBCConnection",
@@ -268,10 +280,10 @@ setMethod("dbListResults", "JDBCConnection",
           def = function(conn, ...) { warning("JDBC maintains no list of active results"); NULL }
           )
 
-.fetch.result <- function(r) {
+.fetch.result <- function(r, conn) {
   md <- .jcall(r, "Ljava/sql/ResultSetMetaData;", "getMetaData", check=FALSE)
   .verify.JDBC.result(md, "Unable to retrieve JDBC result set meta data")
-  res <- new("JDBCResult", jr=r, md=md, stat=.jnull(), env=new.env(parent=emptyenv()))
+  res <- new("JDBCResult", jr=r, md=md, stat=.jnull(), env=new.env(parent=emptyenv()), conn=conn)
   fetch(res, -1)
 }
 
@@ -299,7 +311,7 @@ setMethod("dbGetTables", "JDBCConnection", def=function(conn, pattern="%", schem
               schema, pattern, .jnull("[Ljava/lang/String;"), check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC tables list")
   on.exit(.jcall(r, "V", "close"))
-  .fetch.result(r)
+  .fetch.result(r, conn)
 })
 
 setMethod("dbExistsTable", "JDBCConnection", def=function(conn, name, schema=NULL, ...) length(dbListTables(conn, name, schema)) > 0)
@@ -330,7 +342,7 @@ setMethod("dbGetFields", "JDBCConnection", def=function(conn, name, pattern="%",
               .jnull("java/lang/String"), name, pattern, check=FALSE)
   .verify.JDBC.result(r, "Unable to retrieve JDBC columns list for ", name)
   on.exit(.jcall(r, "V", "close"))
-  .fetch.result(r)
+  .fetch.result(r, conn)
 })
 
 ## There is a bug in DBI which consturcts invalid SQL in its default method for
@@ -435,49 +447,93 @@ setMethod("dbBegin", "JDBCConnection", def=function(conn, force=FALSE, ...) {
 })
 
 ## NOTE: if you modify any defaults or add arguments, also check dbGetQuery() which attempts to pass those through!
-setMethod("fetch", signature(res="JDBCResult", n="numeric"), def=function(res, n, block=2048L, use.label=TRUE, ...) {
+setMethod("fetch", signature(res="JDBCResult", n="numeric"),
+   def=function(res, n, block=dbOption(res, "fetch.block", 2048L), use.label=TRUE,
+                lossy=dbOption(res, "fetch.lossy", FALSE), tz=dbOption(res, "fetch.tz", "GMT"),
+                posix.ts=dbOption(res, "fetch.posix.ts", TRUE),
+                ...) {
   getColumnLabel <- if(use.label) "getColumnLabel" else "getColumnName"
   cols <- .jcall(res@md, "I", "getColumnCount")
   block <- as.integer(block)
   if (length(block) != 1L) stop("invalid block size")
   if (cols < 1L) return(NULL)
   l <- vector("list", cols)
-  cts <- rep(0L, cols) ## colum type (as per JDBC)
-  rts <- rep(0L, cols) ## retrieval types (0 = string, 1 = double)
+  cts <- rep(0L, cols) ## column type (as per JDBC)
+  rts <- rep(0L, cols) ## retrieval types (0 = string, 1 = double, 2 = integer, 3 = POSIXct)
   for (i in 1:cols) {
-    cts[i] <- ct <- .jcall(res@md, "I", "getColumnType", i)
-    l[[i]] <- character()
-    ## NOTE: this is also needed in dbColumnInfo()
-    if (ct == -5 | ct ==-6 | (ct >= 2 & ct <= 8)) {
-        ## some numeric types may exceed double precision (see #83)
-        ## those must be retrieved as strings
-        cp <- .jcall(res@md, "I", "getPrecision", i)
-        if (cp <= 15 || ct >= 4) { ## 4+ = INTEGER, FLOAT, REAL, DOUBLE... some DBs (e.g., MySQL) report bogus precition for those
-            l[[i]] <- numeric()
-            rts[i] <- 1L
-        }
-    }
-    names(l)[i] <- .jcall(res@md, "S", getColumnLabel, i)
+      ## possible retrieval:
+      ## getDouble(), getTimestamp() and getString()
+      ## [NOTE: getBigDecimal() is native for all numeric() types]
+      ## could cehck java.sql.Timestamp which has .getTime() in millis
+      cts[i] <- ct <- .jcall(res@md, "I", "getColumnType", i)
+      l[[i]] <- character()
+      ## NOTE: this is also needed in dbColumnInfo()
+      ## -7 BIT, -6 TINYINT, 5 SMALLINT, 4 INTEGER, -5 BIGINT
+      ## 6 FLOAT, 7 REAL, 8 DOUBLE, 2 NUMERIC, 3 DECIMAL
+      ## 1 CHAR, 12 VARCHAR, -1 LONGVARCHAR
+      ## 91 DATE, 92 TIME, 93 TIMESTAMP
+      ## -2 BINARY, -3 VARBINARY, -4 LONGVARBINARY
+      ## 0 NULL, 1111 OTHER, 2000 JAVA_OBJECT
+      ## 16 BOOLEAN, 1.8+: 2013 TIME_WITH_TIMEZONE,
+      ## 2014 TIMESTAMP_WITH_TIMEZONE
+      ##
+      ## integer-compatible typse
+      if (ct == 4L || ct == 5L || ct == -6L) {
+          l[[i]] <- integer()
+          rts[i] <- 2L
+      } else if (ct == -5L | (ct >= 2L & ct <= 8L)) { ## BIGINT and various float/num types
+          ## some numeric types may exceed double precision (see #83)
+          ## those must be retrieved as strings
+          ##
+          ## check precision for NUMERIC/DECIMAL
+          cp <- if (ct == 2L || ct == 3L) .jcall(res@md, "I", "getPrecision", i) else 0L
+          if (cp <= 15 || isTRUE(lossy)) { ## safe to retrieve (NOTE: except for BIGINT!)
+              l[[i]] <- numeric()
+              rts[i] <- 1L
+          } else { ## high precision
+              ## for now leave as string - we could add a special path
+              ## for BigDecimal where we check the precision of each value
+          }
+      } else if (ct >= 91L && ct <= 93L && isTRUE(posix.ts)) {
+          l[[i]] <- .POSIXct(numeric(), tz)
+          rts[i] <- 3L
+      }
+      ## FIXME: rts = 4L is supported for logicals, but we don't have it mapped
+      names(l)[i] <- .jcall(res@md, "S", getColumnLabel, i)
   }
+  ## print(list(templates=l, types=rts))
+  ## print(types)
+
   rp <- res@env$pull
   if (is.jnull(rp)) {
     rp <- .jnew("info/urbanek/Rpackage/RJDBC/JDBCResultPull", .jcast(res@jr, "java/sql/ResultSet"), .jarray(as.integer(rts)))
     .verify.JDBC.result(rp, "cannot instantiate JDBCResultPull helper class")
     res@env$pull <- rp
   }
+
+  ret.fn <- list( ## retrieval functions for the different types
+      function(i) .jcall(rp, "[Ljava/lang/String;", "getStrings", i),
+      function(i) .jcall(rp, "[D", "getDoubles", i),
+      function(i) .jcall(rp, "[I", "getIntegers", i),
+      function(i) .jcall(rp, "[D", "getDoubles", i),
+      function(i) as.logical(.jcall(rp, "[I", "getIntegers", i)))
+
   if (n < 0L) { ## infinite pull - collect (using pairlists) & join
     stride <- 32768L  ## start fairly small to support tiny queries and increase later
     while ((nrec <- .jcall(rp, "I", "fetch", stride, block)) > 0L) {
       for (i in seq.int(cols))
-        l[[i]] <- pairlist(l[[i]], if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i))
+        l[[i]] <- pairlist(l[[i]], ret.fn[[rts[i] + 1L]](i))
       if (nrec < stride) break
       stride <- 524288L # 512k
     }
     for (i in seq.int(cols)) l[[i]] <- unlist(l[[i]], TRUE, FALSE)
   } else {
     nrec <- .jcall(rp, "I", "fetch", as.integer(n), block)
-    for (i in seq.int(cols)) l[[i]] <- if (rts[i] == 1L) .jcall(rp, "[D", "getDoubles", i) else .jcall(rp, "[Ljava/lang/String;", "getStrings", i)
+    for (i in seq.int(cols)) l[[i]] <- ret.fn[[rts[i] + 1L]](i)
   }
+  ## unlisting can strip attrs so do POSIXct at the end for TSs
+  ts.col <- rts == 3L
+  if (any(ts.col)) for (i in which(ts.col)) l[[i]] <- .POSIXct(l[[i]], tz)
   # as.data.frame is expensive - create it on the fly from the list
   attr(l, "row.names") <- c(NA_integer_, length(l[[1]]))
   class(l) <- "data.frame"

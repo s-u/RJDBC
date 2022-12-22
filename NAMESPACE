@@ -1,4 +1,4 @@
 exportClasses(JDBCDriver, JDBCConnection, JDBCResult)
 import(methods, DBI, rJava)
-exportMethods(dbBegin,dbClearResult,dbColumnInfo,dbCommit,dbConnect,dbDataType,dbDisconnect,dbExistsTable,dbGetException,dbGetInfo,dbGetQuery,dbListConnections,dbListFields,dbListResults,dbListTables,dbReadTable,dbRemoveTable,dbRollback,dbSendQuery,dbSendUpdate,dbUnloadDriver,dbWriteTable,dbGetTables,dbGetFields,fetch)
+exportMethods(dbBegin,dbClearResult,dbColumnInfo,dbCommit,dbConnect,dbDataType,dbDisconnect,dbExistsTable,dbGetException,dbGetInfo,dbGetQuery,dbListConnections,dbListFields,dbListResults,dbListTables,dbReadTable,dbRemoveTable,dbRollback,dbSendQuery,dbSendUpdate,dbUnloadDriver,dbWriteTable,dbGetTables,dbGetFields,fetch,dbOption)
 export(JDBC, findDrivers)

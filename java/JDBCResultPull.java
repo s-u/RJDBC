@@ -7,8 +7,16 @@ public class JDBCResultPull {
     public static final int CT_STRING  = 0;
     /** column type: numeric (retrieved as doubles) */
     public static final int CT_NUMERIC = 1;
+    /** column type: integer */
+    public static final int CT_INTEGER = 2;
+    /** column type: timestamp (retrieved as doubles) */
+    public static final int CT_TS      = 3;
+    /** column type: logical (retrieved as int) */
+    public static final int CT_LOGICAL = 4;
     /** NA double value */
     public static final double NA_double = Double.longBitsToDouble(0x7ff00000000007a2L);
+    /** NA int value */
+    public static final int NA_integer   = -2147483648;
 
     /** active result set */
     ResultSet rs;
@@ -74,8 +82,14 @@ public class JDBCResultPull {
      */
     public void setCapacity(int atMost) {
 	if (capacity != atMost) {
-	    for (int i = 0; i < cols; i++)
-		data[i] = (cTypes[i] == CT_NUMERIC) ? (Object)new double[atMost] : (Object)new String[atMost];
+	    for (int i = 0; i < cols; i++) {
+		if (cTypes[i] == CT_NUMERIC || cTypes[i] == CT_TS)
+		    data[i] = (Object)new double[atMost];
+		else if (cTypes[i] == CT_INTEGER || cTypes[i] == CT_LOGICAL)
+		    data[i] = (Object)new int[atMost];
+		else
+		    data[i] = (Object)new String[atMost];
+	    }
 	    capacity = atMost;
 	}
     }
@@ -102,9 +116,19 @@ public class JDBCResultPull {
 		if (cTypes[i] == CT_NUMERIC) {
 		    double val = rs.getDouble(i + 1);
 		    if (rs.wasNull()) val = NA_double;
-		    ((double[])data[i])[count] = val; 
+		    ((double[])data[i])[count] = val;
+		} else if (cTypes[i] == CT_INTEGER || cTypes[i] == CT_LOGICAL) {
+		    int val = rs.getInt(i + 1);
+		    if (rs.wasNull()) val = NA_integer;
+		    ((int[])data[i])[count] = val;
+		} else if (cTypes[i] == CT_TS) {
+		    java.sql.Timestamp ts = rs.getTimestamp(i + 1);
+		    double val = NA_double;
+		    if (!rs.wasNull())
+			val = ((double) ts.getTime()) / 1000.0;
+		    ((double[])data[i])[count] = val;
 		} else
-		    ((String[])data[i])[count] = rs.getString(i + 1); 
+		    ((String[])data[i])[count] = rs.getString(i + 1);
 	    count++;
 	    if (count >= capacity)
 		return count;
@@ -140,6 +164,18 @@ public class JDBCResultPull {
 	double[] a = (double[]) data[column - 1];
 	if (count == a.length) return a;
 	double[] b = new double[count];
+	if (count > 0) System.arraycopy(a, 0, b, 0, count);
+	return b;
+    }
+
+    /** retrieve numeric column data truncated to count - performs NO
+     *  checking and can raise exceptions
+     *  @param column 1-based index of the column
+     *  @return column object or <code>null</code> if non-existent */
+    public int[] getIntegers(int column) {
+	int[] a = (int[]) data[column - 1];
+	if (count == a.length) return a;
+	int[] b = new int[count];
 	if (count > 0) System.arraycopy(a, 0, b, 0, count);
 	return b;
     }

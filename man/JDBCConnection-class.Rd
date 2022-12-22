@@ -17,6 +17,9 @@
 	     statements or \code{NA} if the back-end doesn't support
 	     quoted identifiers. Usually the value is inherited from the
 	     \code{"\linkS4class{JDBCDriver}"}.}
+	   \item{\code{options}:}{list of options saved with this
+	     connection - see \code{\link{dbOption}} and
+	     \code{dbOptions=} parameter to \code{\link{dbConnect}}.}
 	 }
        }
        

@@ -12,7 +12,7 @@
   class path.
 }
 \usage{
-  JDBC (driverClass = "", classPath = "", identifier.quote = NA)
+  JDBC (driverClass = "", classPath = "", identifier.quote = NA, ...)
   findDrivers(classPath = "", service = "java.sql.Driver", loader = NULL)
 }
 \arguments{
@@ -28,7 +28,9 @@
   \item{service}{string, name of the services class (for JDBC always
     "java.sql.Driver")}
   \item{loader}{Java class loader to use during the look-up or
-    \code{NULL} for the default one}  
+    \code{NULL} for the default one}
+  \item{\dots}{optional list, wiht potions to associate with this
+    driver. See also \code{\link{dbOption}}.}
 }
 \value{
   \code{JDBC} returns a \code{JDBCDriver} object that can be used in
@@ -82,7 +84,7 @@
     \item \code{dbConnect(JDBC(findDrivers("driver.jar")[[1]]), ...)} uses
     \code{findDrivers()} (see details above) to find all available
     drivers and then passes the needed driver (in this example the first
-    one) to \code{JDBC()}. You don't need to repeat teh class path in
+    one) to \code{JDBC()}. You don't need to repeat the class path in
     this case as it is already set by \code{findDrivers()}. It is best
     to look at the output to see which drivers have been found, but if
     you pass the list, the first driver is used. Note that if you print
@@ -95,7 +97,7 @@
   not just the main JAR file. They \emph{all} must be listed on the
   class path. Also make sure your JVM is supported by the driver, trying
   to load drivers with too old JVM versions also leads to ClassNotFound
-  errors (as the loader will ignore calsses it cannot load). You can
+  errors (as the loader will ignore classes it cannot load). You can
   always enable debugging information in the rJava class loader using
   \code{.jclassLoader()$setDebug(1L)} for more verbose output that may
   help in your troubleshooting.  

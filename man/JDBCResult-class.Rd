@@ -13,7 +13,9 @@
     \item{\code{md}:}{Java reference to the JDBC result set meta data}
     \item{\code{env}:}{Environment holding cached objects (currently the
       result helper object used by \code{fetch()})}
-    \item{\code{stat}:}{Java reference to the JDBC statement which generated this result}
+    \item{\code{stat}:}{Java reference to the JDBC statement which
+      generated this result}
+    \item{\code{conn}:}{Connection which created this result set}
   }
 }
 \section{Extends}{
