@@ -20,6 +20,10 @@
 	   \item{\code{options}:}{list of options saved with this
 	     connection - see \code{\link{dbOption}} and
 	     \code{dbOptions=} parameter to \code{\link{dbConnect}}.}
+	   \item{\code{auto.commit}:}{logical, the auto-commit mode to
+	     maintain in the connection while not in transaction
+	     mode. It corresponds to the auto-commit status as the end
+	     of \code{dbConnect()}.}
 	 }
        }
        

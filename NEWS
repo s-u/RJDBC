@@ -13,6 +13,17 @@
 
 	Options currently used by RJDBC:
 
+	- autocommit - logical, if set during dbConnect() then
+	    auto-commit on the connection is explicitly enabled (TRUE)
+	    or disabled (FALSE) regardless of the initial state. If
+	    not set, the auto-commit state is determined by the driver
+	    and the default in JDBC is enabled. This option is
+	    provided as a last-resort override for drivers that do not
+	    support this option in the connection string and should be
+	    rarely used. Note that auto-commit is always disabled for
+	    the duration of transactions bracketed by dbBegin() and
+	    dbCommit()/dbRollback().
+
 	- fetch.block (default: 2048L) - see fetch(block=)
 	- fetch.lossy (default: FALSE) - see fetch(lossy=)
 	- fetch.posix.ts (default: TRUE) - see fetch(posix.ts=)
@@ -55,6 +66,16 @@
 	  Note that this is only relevant for pringin, the actual
 	  timestamps is always an absolute point in time, but may be
 	  shown in different time zones.
+
+    *	JDBC connections now allow auto-commit mode to be disabled
+	either by options to the driver (connection string or
+	corresponding property - see you driver's docummentation if
+	supported) or by using the autocommit dbOption (see
+	above). Previously, the auto-commit mode was required to be
+	always enabled (see #97).
+	Note: the auto-commit mode should NOT be changed by SQL
+	commands, otherwise dbBegin()/dbCommit() won't know which
+	state to restore.
 
 
 0.2-11

@@ -2,7 +2,7 @@
 
 setClass("JDBCDriver", representation("DBIDriver", identifier.quote="character", jdrv="jobjRef", options="list"))
 
-setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character", options="list"))
+setClass("JDBCConnection", representation("DBIConnection", jc="jobjRef", identifier.quote="character", options="list", auto.commit="logical"))
 
 ##=== JDBCResult
 ## jr - result set, md - metadata, stat - statement
@@ -137,8 +137,14 @@ setMethod("dbConnect", "JDBCDriver", def=function(drv, url, user='', password=''
     if (!missing(dbOptions) && is.list(dbOptions))
         for (opt in names(dbOptions))
             opts[[opt]] <- dbOptions[[opt]]
-    new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote, options=opts)},
-    valueClass="JDBCConnection")
+    if (is.logical(opts$autocommit) && length(opts$autocommit) == 1L) {
+        .jcall(conn@jc, "V", "setAutoCommit", opts$autocommit)
+        .verify.ex("Unable to set autocommit to ", opts$autocommit)
+    }
+    ac <- .jcall(jc, "Z", "getAutoCommit")
+    .verify.ex("Unable to determine autocommit state")
+    new("JDBCConnection", jc=jc, identifier.quote=drv@identifier.quote, options=opts, auto.commit=ac)
+}, valueClass="JDBCConnection")
 
 ### JDBCConnection
 
@@ -423,26 +429,37 @@ setMethod("dbWriteTable", "JDBCConnection", def=function(conn, name, value, over
 setMethod("dbCommit", "JDBCConnection", def=function(conn, ...) {
     .jcall(conn@jc, "V", "commit")
     .verify.ex("commit failed")
-    .jcall(conn@jc, "V", "setAutoCommit", TRUE)
-    .verify.ex("enabling auto-commit failed")
+    if (!is.na(conn@auto.commit)) {
+        .jcall(conn@jc, "V", "setAutoCommit", conn@auto.commit)
+        .verify.ex("resetting auto-commit failed")
+    }
     invisible(TRUE)
 })
 
 setMethod("dbRollback", "JDBCConnection", def=function(conn, ...) {
     .jcall(conn@jc, "V", "rollback")
     .verify.ex("rollback failed")
-    .jcall(conn@jc, "V", "setAutoCommit", TRUE)
-    .verify.ex("enabling auto-commit failed")
+    if (!is.na(conn@auto.commit)) {
+        .jcall(conn@jc, "V", "setAutoCommit", conn@auto.commit)
+        .verify.ex("resetting auto-commit failed")
+    }
     invisible(TRUE)
 })
 
 setMethod("dbBegin", "JDBCConnection", def=function(conn, force=FALSE, ...) {
     ac <- .jcall(conn@jc, "Z", "getAutoCommit")
     .verify.ex("cannot determine transaction state")
-    if (!force && !isTRUE(ac))
-        stop("JDBC connection is already in transaction mode")
-    .jcall(conn@jc, "V", "setAutoCommit", FALSE)
-    .verify.ex("disabling auto-commit failed")
+    if (ac) {
+        .jcall(conn@jc, "V", "setAutoCommit", FALSE)
+        .verify.ex("disabling auto-commit failed")
+    } else {
+        ## if auto-commit is disabled there can be two reasons:
+        ##  - either it is a nested dbBegin() -> error or
+        ##  - the connection has been started with disabled auto-commit
+        ##    (not the default, but possible and allowed - see #97)
+        if (!force && !isTRUE(!conn@auto.commit))
+            stop("JDBC connection is already in transaction mode")
+    }
     invisible(TRUE)
 })
 
