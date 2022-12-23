@@ -6,7 +6,7 @@
 	dbOptions= parameter to dbConnect(). The connections inherit
 	driver parameters (if any).
 
-	The options are in principle avaiable to any furhter functions
+	The options are in principle available to any furhter functions
 	and can be checked using the new dbOption() generic which is
 	akin to getOption() in R, but it is mostly used by methods in
 	RJDBC.
@@ -36,35 +36,41 @@
 	JDBC("org.postgresql.Driver", "postgresql-42.3.3.jar",
 	     fetch.lossy=TRUE)
 
-	Similarly, it is possible to do so only for particular
-	connections, such as if the MySQL driver was loaded without
+	Similarly, it is possible to do so only for a particular
+	connection, such as if the MySQL driver was loaded without
 	such option then
 
 	dbConnect(MySQL, "jdbc:mysql://localhost/foo",
 	   dbOptions=list(fetch.lossy=TRUE))
 
+   *	Values which are representable as timestamps are now retrieved
+	in POSIX form (seconds since the epoch, same as POSIXct in
+	R). This behavior can be disabled using the posix.ts=FALSE
+	arrugment (see below) to match RDJBC 0.2 which used string
+	representation of date/time values.
+
    *	fetch() (and by extension dbGetQuery() and dbReadTable())
 	gains new arguments:
 
-	lossy: logical, if FALSE (default) then result columns that
+	lossy: logical, if FALSE (default) then result columns which
 	  contain decimals that may not be representable in IEEE
-	  double format are returned as string. If TRUE then any
+	  double format are returned as strings. If TRUE then any
 	  numeric or decimal values are converted to doubles even if
-	  that may result in loss of presision. (see also #92)
+	  that may result in a loss of precision. (see also #92)
 
 	posix.ts: logical, if TRUE (default) then result columns with
-	  data/time values are fetched as timestamps in POSIX
+	  date/time values are fetched as timestamps in POSIX
 	  form. This is most efficient and identical to POSIXct
 	  representation in R, but it relies on drivers and DBMS
 	  handling time zones properly. If FALSE then values are
-	  returned as strings which is less effient, but may be easier
-	  to uncover issues in data/time handling.
+	  returned as strings which is less efficient, but may be
+	  used to uncover issues in date/time handling.
 
 	tz: string, defaults to "" which denotes R's current time
 	  zone. Specifies the time zone in which the resulting POSIXct
-	  data should be displayed (same as using .POSIXct(x, tz=tz)).
-	  Note that this is only relevant for pringin, the actual
-	  timestamps is always an absolute point in time, but may be
+	  date should be displayed (same as using .POSIXct(x, tz=tz)).
+	  Note that this is only relevant for printing. The actual
+	  timestamp is always an absolute point in time, but may be
 	  shown in different time zones.
 
     *	JDBC connections now allow auto-commit mode to be disabled
