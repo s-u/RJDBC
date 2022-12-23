@@ -19,7 +19,12 @@ dbSetTypeMaps <- function(...) {
     l <- list(...)
     if (length(l) && is.null(names(l)))
         stop("Type maps must be named")
-    for (i in names(l))
-        .type.map[[i]] <- l[[i]]
-    as.list(.type.map)
+    for (i in names(l)) {
+        if (is.null(l[[i]])) {
+            if (!is.null(.type.map[[i]]))
+                rm(list=i, envir=.type.map)
+        } else
+            .type.map[[i]] <- l[[i]]
+    }
+    if (length(l)) invisible(as.list(.type.map)) else as.list(.type.map)
 }
