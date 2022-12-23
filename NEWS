@@ -1,4 +1,18 @@
 0.3-0
+    *	CHANGE IN BEHAVIOR: any numeric column types that cannot be
+	represented by native R numerics will be returned as character
+	vectors in fetch() and related functions. If the previous
+	behavior as exhibited by of RJDBC 0.2-8 or earlier is desired,
+	use JDBC(..., fetch.lossy=TRUE) when loading the driver. Note
+	that doing so may result in loss of precision (as it did in
+	older RJDBC versions).
+
+	Similarly, date/time related types are now fetched natively as
+	POSIXct type. To revert to old behavior of using character
+	vectors, set fetch.posix.ts=FALSE option in the driver.
+
+	(See below for related new features and other options.)
+
     *	RJDBC now supports options that can be defined at driver or
 	connection level which affect the defaults to some methods
 	such as fetch() or dbGetQuery(). They can be set either as
@@ -6,7 +20,7 @@
 	dbOptions= parameter to dbConnect(). The connections inherit
 	driver parameters (if any).
 
-	The options are in principle available to any furhter functions
+	The options are in principle available to any further functions
 	and can be checked using the new dbOption() generic which is
 	akin to getOption() in R, but it is mostly used by methods in
 	RJDBC.
@@ -46,14 +60,23 @@
    *	Values which are representable as timestamps are now retrieved
 	in POSIX form (seconds since the epoch, same as POSIXct in
 	R). This behavior can be disabled using the posix.ts=FALSE
-	arrugment (see below) to match RDJBC 0.2 which used string
+	argument (see below) to match RDJBC 0.2 which used string
 	representation of date/time values.
+
+   *	BIGINT type (64-bit integer) is now correctly handled as
+	non-representable (since it exceeds R's 53-bit double
+	precision) and will be returned as charecter vector unless
+	lossy=TRUE. Note that if non-lossy efficient storage is
+	desired, it is it possible to use lossy=FALSE (default) and
+	bit64 package registered as a type map:
+
+	dbSetTypeMaps(BIGINT=bit64::as.integer64)
 
    *	fetch() (and by extension dbGetQuery() and dbReadTable())
 	gains new arguments:
 
 	lossy: logical, if FALSE (default) then result columns which
-	  contain decimals that may not be representable in IEEE
+	  contain numbers that may not be representable in IEEE
 	  double format are returned as strings. If TRUE then any
 	  numeric or decimal values are converted to doubles even if
 	  that may result in a loss of precision. (see also #92)
