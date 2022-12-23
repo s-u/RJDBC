@@ -503,13 +503,13 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"),
           ## those must be retrieved as strings
           ##
           ## check precision for NUMERIC/DECIMAL
-          cp <- if (ct == 2L || ct == 3L) .jcall(res@md, "I", "getPrecision", i) else 0L
-          if (cp <= 15 || isTRUE(lossy)) { ## safe to retrieve (NOTE: except for BIGINT!)
+          cp <- switch(as.character(ct),
+                       `2` =, `3` = .jcall(res@md, "I", "getPrecision", i),
+                       `-5`= 20L, ## BIGINT
+                       0L)
+          if (cp <= 15 || isTRUE(lossy)) { ## safe to retrieve
               l[[i]] <- numeric()
               rts[i] <- 1L
-          } else { ## high precision
-              ## for now leave as string - we could add a special path
-              ## for BigDecimal where we check the precision of each value
           }
       } else if (ct >= 91L && ct <= 93L && isTRUE(posix.ts)) {
           l[[i]] <- .POSIXct(numeric(), tz)
