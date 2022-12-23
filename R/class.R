@@ -266,7 +266,7 @@ setMethod("dbSendUpdate",  signature(conn="JDBCConnection", statement="character
 
 setMethod("dbGetQuery", signature(conn="JDBCConnection", statement="character"),
     def=function(conn, statement, ..., n=-1, block=dbOption(conn, "fetch.block", 2048L), use.label=TRUE,
-                 lossy=dbOption(conn, "fetch.lossy", FALSE), tz=dbOption(conn, "fetch.tz", ""),
+                 lossy=dbOption(conn, "fetch.lossy", TRUE), tz=dbOption(conn, "fetch.tz", ""),
                  posix.ts=dbOption(conn, "fetch.posix.ts", TRUE)
                  ) {
   r <- dbSendQuery(conn, statement, ...)
@@ -466,7 +466,7 @@ setMethod("dbBegin", "JDBCConnection", def=function(conn, force=FALSE, ...) {
 ## NOTE: if you modify any defaults or add arguments, also check dbGetQuery() which attempts to pass those through!
 setMethod("fetch", signature(res="JDBCResult", n="numeric"),
    def=function(res, n, block=dbOption(res, "fetch.block", 2048L), use.label=TRUE,
-                lossy=dbOption(res, "fetch.lossy", FALSE), tz=dbOption(res, "fetch.tz", "GMT"),
+                lossy=dbOption(res, "fetch.lossy", TRUE), tz=dbOption(res, "fetch.tz", "GMT"),
                 posix.ts=dbOption(res, "fetch.posix.ts", TRUE),
                 ...) {
   getColumnLabel <- if(use.label) "getColumnLabel" else "getColumnName"
