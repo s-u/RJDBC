@@ -484,7 +484,7 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"),
       ## could cehck java.sql.Timestamp which has .getTime() in millis
       cts[i] <- ct <- .jcall(res@md, "I", "getColumnType", i)
       l[[i]] <- character()
-      ## NOTE: this is also needed in dbColumnInfo()
+      ## NOTE: this is also needed in dbColumnInfo() - see also JDBC.types
       ## -7 BIT, -6 TINYINT, 5 SMALLINT, 4 INTEGER, -5 BIGINT
       ## 6 FLOAT, 7 REAL, 8 DOUBLE, 2 NUMERIC, 3 DECIMAL
       ## 1 CHAR, 12 VARCHAR, -1 LONGVARCHAR
@@ -511,11 +511,13 @@ setMethod("fetch", signature(res="JDBCResult", n="numeric"),
               l[[i]] <- numeric()
               rts[i] <- 1L
           }
-      } else if (ct >= 91L && ct <= 93L && isTRUE(posix.ts)) {
+      } else if (ct >= 91L && ct <= 93L && isTRUE(posix.ts)) { ## DATE/TIME/TS
           l[[i]] <- .POSIXct(numeric(), tz)
           rts[i] <- 3L
+      } else if (ct == -7L) { ## BIT
+          l[[i]] <- logical()
+          rts[i] <- 4L
       }
-      ## FIXME: rts = 4L is supported for logicals, but we don't have it mapped
       names(l)[i] <- .jcall(res@md, "S", getColumnLabel, i)
   }
   ## print(list(templates=l, types=rts))
