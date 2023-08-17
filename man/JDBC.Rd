@@ -109,9 +109,9 @@
   functions such as \code{\link[DBI]{dbWriteTable}} that have to
   automatically generate SQL code. One major ability is the support for
   quoted identifiers. The SQL92 standard uses double-quotes, but many
-  database engines either don't support it or use other character. The
+  database engines either do not support it or use another character. The
   \code{identifier.quote} parameter allows you to set the proper quote
-  character for the database used. For example MySQL would require
+  character for your database. For example, MySQL would require
   \code{identifier.quote="`"}. If set to \code{NA}, the ability to quote
   identifiers is disabled, which poses restrictions on the names that
   can be used for tables and fields. Other functionality is not affected.  
