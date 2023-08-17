@@ -366,7 +366,7 @@ setMethod("dbDataType", signature(dbObj="JDBCConnection", obj = "ANY"),
           def = function(dbObj, obj, ...) {
             if (is.integer(obj)) "INTEGER"
             else if (is.numeric(obj)) "DOUBLE PRECISION"
-            else "VARCHAR(255)"
+            else paste0("VARCHAR(", max(nchar(as.character(obj))), ")")
           }, valueClass = "character")
 
 .sql.qescape <- function(s, identifier=FALSE, quote="\"") {
