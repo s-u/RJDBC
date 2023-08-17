@@ -7,7 +7,7 @@
   Type mapping functions are functions that perform conversions between
   types as they are received from JDBC to R objects. For any JDBC type
   it is possible to define a function which is called before returning
-  results from \code{\link{fetch()}}.
+  results from \code{\link[DBI]{fetch}()}.
 
   \code{dbSetTypeMaps()} function sets, removes or lists the mapping
   functions.

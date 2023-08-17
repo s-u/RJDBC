@@ -14,9 +14,9 @@
   act as defaults for the DBI methods. Options are inherited, to setting
   an option in a call to \code{\link{JDBC}} will automatically propagate
   that option to the \code{JDBCConnection} object created by
-  \code{\link{dbConnect}}. You can override an option by specifying it
+  \code{\link[DBI]{dbConnect}}. You can override an option by specifying it
   downstream, so, setting \code{dbOptions=} parameter in
-  \code{\link{dbConnect}} will replace the options from the deriver with
+  \code{\link[DBI]{dbConnect}} will replace the options from the deriver with
   the same name, but will keep all others.
 }
 \usage{
@@ -39,9 +39,8 @@ dbOption(dbo, name, default)
 %\note{
 %}
 \seealso{
-\code{\link{JDBC}}, \code{\link{dbConnect}}
+\code{\link{JDBC}}, \code{\link[DBI]{dbConnect}}
 }
 %\examples{
 %}
 \keyword{interface}
-
